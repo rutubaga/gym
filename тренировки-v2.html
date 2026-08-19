@@ -636,6 +636,7 @@ function renderToday(){
     <button class="btn ${S.mode==='block'?'primary':''}" data-md="block" style="font-size:13px;padding:8px 14px">База: блок</button>
     <button class="btn ${S.mode==='strength'?'primary':''}" data-md="strength" style="font-size:13px;padding:8px 14px">База: силовой</button></div>
    ${S.mode==='strength'?`<p style="font-size:12.5px;color:#6E727A;margin:10px 0 0;font-weight:600">${BACKOFF}</p>`:''}
+   ${renderCompare()}
    <div class="day ${day.color}" style="margin:14px 0 0"><div class="no">${day.n}</div>
     <div style="flex:1"><h3 style="font-size:16px">${day.name}</h3>
     <div style="font-size:12.5px;color:#6E727A;font-weight:600;margin-top:3px">${day.cond}</div></div></div></div>`;
@@ -662,6 +663,28 @@ function renderToday(){
   <div class="card"><h3>Правило прогрессии</h3><p style="font-size:13.5px;color:#6E727A">Если сделала все подходы с указанным запасом и последний был лёгким — в следующий раз этого упражнения прибавь 2,5 кг (база) или 1 кг (гантели/дельты). Если провалила повторы в двух подходах подряд — оставь вес ещё на неделю.</p></div>`;
  return h;
 }
+/* ---- наглядное сравнение режимов ---- */
+function renderCompare(){
+ const names=Object.keys(STRENGTH);
+ let t='';
+ names.forEach(n=>{
+  const ex=DAYS.flatMap(d=>d.ex).find(e=>e.name===n);
+  const row=(arr,lbl,on)=>`<tr${on?' style="background:#EFFBF3"':''}><td class="ex" style="min-width:96px;font-weight:${on?800:600}">${lbl}${on?' ✓':''}</td>`+
+   arr.map((w,i)=>`<td${i===3||i===7?' class="dl"':''}>${w.s}×${w.r}<div style="font-size:10.5px;color:#9A9DA3;font-weight:700">${w.l}</div></td>`).join('')+'</tr>';
+  t+=`<div style="margin:14px 0 0"><div style="font-weight:800;font-size:14px;margin-bottom:6px">${n}</div>
+   <div class="scroll"><table style="font-size:12.5px">
+   <tr><th class="ex">режим</th>${[1,2,3,4,5,6,7,8].map(i=>`<th${i===4||i===8?' class="dl"':''}>${i}</th>`).join('')}</tr>
+   ${row(ex.w,'блок',S.mode==='block')}
+   ${row(STRENGTH[n],'силовой',S.mode==='strength')}
+   </table></div></div>`;});
+ return `<details style="margin-top:12px"><summary style="cursor:pointer;list-style:none;font-size:13px;font-weight:800;color:#0FBF63">В чём разница ↓</summary>
+  <p style="font-size:13.5px;color:#6E727A;font-weight:600;margin:10px 0 0">Меняются только три упражнения — присед, румынка и хип-траст. Всё остальное в программе одинаковое.</p>
+  ${t}
+  <div class="why" style="margin-top:14px"><b>Блок:</b> начинаешь легко и много повторов, к 6–7 неделе выходишь на тяжёлое. Спина и колени устают меньше, первые недели будут казаться простыми — так и задумано.<br><br>
+  <b>Силовой:</b> тяжело с первой недели, повторов мало. Тренировка короче, ощущается «по-настоящему», но усталость от неё выше и объём меньше — его надо добирать сбрасывающим подходом.<br><br>
+  <b>Как выбрать:</b> если после первых двух недель блока кажется, что ты не тренируешься, а разминаешься — переключайся на силовой. Если после силовой тренировки день 1 идёт вяло и поясница не восстанавливается — возвращайся на блок.</div></details>`;
+}
+
 function fabUpdate(){
  const day=DAYS[S.day-1],wi=S.week-1,key=`w${S.week}d${S.day}`,log=S.log[key]||{sets:{}};
  let tot=0,done=0;
