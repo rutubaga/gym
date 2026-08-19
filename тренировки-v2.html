@@ -528,8 +528,22 @@ const KEY='train-v2';
 const nextMonday=()=>{const d=new Date();const s=(8-d.getDay())%7||7;d.setDate(d.getDate()+s);return d.toISOString().slice(0,10);};
 const store={get(){try{return JSON.parse(localStorage.getItem(KEY)||'{}');}catch(e){return {};}},
              set(v){try{localStorage.setItem(KEY,JSON.stringify(v));}catch(e){}}};
-let S=Object.assign({start:nextMonday(),week:1,day:1,log:{},custom:[],daily:{},tab:'today'},store.get());
+let S=Object.assign({start:nextMonday(),week:1,day:1,mode:'block',log:{},custom:[],daily:{},tab:'today'},store.get());
 const save=()=>store.set(S);
+
+/* ---- альтернатива: силовой режим базы (тяжело с первой недели) ---- */
+const STRENGTH={
+ 'Присед ниже параллели':[
+  {s:4,r:'6',l:72.5,rir:3},{s:4,r:'5',l:77.5,rir:2},{s:5,r:'4',l:82.5,rir:2},{s:2,r:'6',l:65,rir:4},
+  {s:4,r:'5',l:80,rir:2},{s:4,r:'4',l:85,rir:1},{s:3,r:'3',l:87.5,rir:1},{s:2,r:'3 тест',l:90,rir:0}],
+ 'Румынская тяга':[
+  {s:4,r:'6',l:85,rir:3},{s:4,r:'5',l:92.5,rir:2},{s:4,r:'4',l:97.5,rir:2},{s:2,r:'6',l:75,rir:4},
+  {s:4,r:'5',l:95,rir:2},{s:4,r:'4',l:100,rir:1},{s:3,r:'3',l:107.5,rir:1},{s:2,r:'5 тест',l:100,rir:0}],
+ 'Хип-траст':[
+  {s:4,r:'6',l:180,rir:3},{s:4,r:'5',l:190,rir:2},{s:4,r:'5',l:200,rir:2},{s:2,r:'6',l:150,rir:4},
+  {s:4,r:'5',l:200,rir:2},{s:4,r:'4',l:210,rir:1},{s:3,r:'3',l:220,rir:1},{s:3,r:'8',l:180,rir:2}]};
+const sch=(ex,wi)=>(S.mode==='strength'&&STRENGTH[ex.name])?STRENGTH[ex.name][wi]:ex.w[wi];
+const BACKOFF='В силовом режиме после тяжёлых подходов сделай один сбрасывающий: 60% от рабочего веса на 10–12 повторов. Он вернёт объём, который ушёл из-за низких повторов.';
 
 /* ============ 4. МАТЕМАТИКА ============ */
 const e1rm=(w,r)=>(!w||!r||r>8)?null:Math.round(w*(1+r/30)*10)/10;
@@ -605,7 +619,7 @@ function renderNav(){
 function renderToday(){
  const day=DAYS[S.day-1],wi=S.week-1,key=`w${S.week}d${S.day}`,log=S.log[key]||{sets:{}};
  let tot=0,dn=0;
- day.ex.forEach((ex,i)=>{tot+=ex.w[wi].s;(log.sets[i]||[]).forEach(r=>{if(r&&r.done)dn++;});});
+ day.ex.forEach((ex,i)=>{tot+=sch(ex,wi).s;(log.sets[i]||[]).forEach(r=>{if(r&&r.done)dn++;});});
  const pct=tot?Math.round(dn/tot*100):0;
  let h=`<div class="card ${pct===100?'dark':'green'}">
   <div class="row"><span class="pill ${pct===100?'green':'dark'}">Неделя ${S.week} · ${WK_TYPE[wi]}</span>
@@ -618,11 +632,15 @@ function renderToday(){
   <div class="card tight"><div class="row" style="flex-wrap:wrap">
    <select id="selw">${WK_TYPE.map((t,i)=>`<option value="${i+1}" ${S.week===i+1?'selected':''}>Неделя ${i+1} — ${t}</option>`).join('')}</select>
    <select id="seld">${DAYS.map(d=>`<option value="${d.n}" ${S.day===d.n?'selected':''}>День ${d.n}</option>`).join('')}</select></div>
+   <div class="row" style="gap:6px;margin-top:10px">
+    <button class="btn ${S.mode==='block'?'primary':''}" data-md="block" style="font-size:13px;padding:8px 14px">База: блок</button>
+    <button class="btn ${S.mode==='strength'?'primary':''}" data-md="strength" style="font-size:13px;padding:8px 14px">База: силовой</button></div>
+   ${S.mode==='strength'?`<p style="font-size:12.5px;color:#6E727A;margin:10px 0 0;font-weight:600">${BACKOFF}</p>`:''}
    <div class="day ${day.color}" style="margin:14px 0 0"><div class="no">${day.n}</div>
     <div style="flex:1"><h3 style="font-size:16px">${day.name}</h3>
     <div style="font-size:12.5px;color:#6E727A;font-weight:600;margin-top:3px">${day.cond}</div></div></div></div>`;
  day.ex.forEach((ex,i)=>{
-  const p=ex.w[wi],rows=log.sets[i]||[];
+  const p=sch(ex,wi),rows=log.sets[i]||[];
   const allDone=rows.length===p.s&&rows.every(r=>r&&r.done);
   h+=`<div class="card ${allDone?'exdone':''}" data-ex="${i}">
    <div class="exh"><div class="n"><div class="name">${ex.name}</div><div class="cue">${ex.cue}</div></div>
@@ -647,7 +665,7 @@ function renderToday(){
 function fabUpdate(){
  const day=DAYS[S.day-1],wi=S.week-1,key=`w${S.week}d${S.day}`,log=S.log[key]||{sets:{}};
  let tot=0,done=0;
- day.ex.forEach((ex,i)=>{const p=ex.w[wi];tot+=p.s;(log.sets[i]||[]).forEach(r=>{if(r&&r.done)done++;});});
+ day.ex.forEach((ex,i)=>{const p=sch(ex,wi);tot+=p.s;(log.sets[i]||[]).forEach(r=>{if(r&&r.done)done++;});});
  document.getElementById('fabbar').style.width=(tot?done/tot*100:0)+'%';
  document.getElementById('fabtxt').textContent=`${done}/${tot}`;
  const gc=document.querySelector('.card.green .num, .card.dark .num');
@@ -658,7 +676,7 @@ function fabUpdate(){
 function saveSession(){
  const day=DAYS[S.day-1],wi=S.week-1,key=`w${S.week}d${S.day}`,log=S.log[key]||{sets:{}};
  const e=[];
- day.ex.forEach((ex,i)=>{const p=ex.w[wi],rows=log.sets[i]||[],sets=[];
+ day.ex.forEach((ex,i)=>{const p=sch(ex,wi),rows=log.sets[i]||[],sets=[];
   rows.forEach(r=>{if(r&&r.done)sets.push([r.w??p.l??0,(r.r??(parseInt(p.r)||null))]);});
   if(sets.length)e.push([ex.name,sets]);});
  if(!e.length){alert('Ни один подход не отмечен галочкой.');return;}
@@ -679,7 +697,7 @@ function renderProgram(){
   <div class="card"><h3>Блок на 8 недель · 2 тренировки + 1 по желанию</h3>
   <p style="font-size:13.5px;color:#6E727A">Дней недели нет: чередуешь день 1 и день 2, минимум сутки отдыха. Неделя блока сдвигается после каждой пары «1+2», а не по календарю. Разминка 8–10 мин, отдых между подходами 1,5–2 мин на базе и 60–90 с на изоляции. Веса — от твоих реальных максимумов.</p>
   <div class="grid g4" style="margin-top:12px">
-   <div class="stat"><div class="v">2+1</div><div class="k">тренировки</div></div>
+   <div class="stat"><div class="v">${S.mode==='strength'?'4–6':'8→3'}</div><div class="k">повторов на базе</div></div>
    <div class="stat"><div class="v">16</div><div class="k">тренировок в блоке</div></div>
    <div class="stat"><div class="v">13–16</div><div class="k">подходов на ягодицы</div></div>
    <div class="stat"><div class="v">4 и 8</div><div class="k">недели разгрузки</div></div>
@@ -694,7 +712,7 @@ function renderProgram(){
   day.ex.forEach(ex=>{
    h+=`<tr><td class="ex"><a href="${yt(ex.name)}" target="_blank" rel="noreferrer" style="color:var(--ink);text-decoration:none">${ex.name} <span style="color:#0FBF63">▶</span></a>
     <div style="font-size:11px;color:#9A9DA3;font-weight:400">${ex.m}</div></td>`+
-    ex.w.map((p,i)=>`<td${i===3||i===7?' class="dl"':''}>${p.s}×${p.r}${p.l?'<br><small>'+p.l+'</small>':''}</td>`).join('')+`</tr>`;});
+    ex.w.map((_,i)=>sch(ex,i)).map((p,i)=>`<td${i===3||i===7?' class="dl"':''}>${p.s}×${p.r}${p.l?'<br><small>'+p.l+'</small>':''}</td>`).join('')+`</tr>`;});
   h+=`</table></div><p style="font-size:12.5px;color:#6E727A;margin-top:10px">Формат: подходы × повторы, снизу — вес в кг.</p></div>`;});
  return h;
 }
@@ -844,6 +862,8 @@ const SRC=[
  ['Schoenfeld B. и др., 2017, J Strength Cond Res','Низкие против высоких весов: гипертрофия сопоставима, сила выше на тяжёлых','https://pubmed.ncbi.nlm.nih.gov/28834797/'],
  ['Lopez P. и др., 2021, Med Sci Sports Exerc','Сетевой мета-анализ по весу нагрузки: рост не зависит от веса, сила зависит','https://pubmed.ncbi.nlm.nih.gov/33433148/'],
  ['Schoenfeld B. и др., 2021, Sports','Пересмотр «континуума повторов»: рекомендации по весу для силы, роста и выносливости','https://pmc.ncbi.nlm.nih.gov/articles/PMC7927075/'],
+ ['Williams T. и др., 2017, Sports Medicine','Периодизация против непериодизированной программы: мета-анализ по максимальной силе','https://link.springer.com/article/10.1007/s40279-017-0734-y'],
+ ['Moesgaard L. и др., 2022, Sports Medicine','Периодизация при равном объёме: сила и гипертрофия','https://pubmed.ncbi.nlm.nih.gov/35044672/'],
  ['Morton R. и др., 2018, Br J Sports Med','Белок: 1,6 г/кг как точка, после которой прибавки нет','https://pubmed.ncbi.nlm.nih.gov/28698222/'],
  ['Систематический обзор с мета-анализом, 2021','Что реально уменьшает грудной кифоз','https://www.sciencedirect.com/science/article/abs/pii/S2468781221001223'],
  ['Мета-анализ 2024, BMC Musculoskelet Disord','Упражнения при верхнем перекрёстном синдроме','https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10832142/'],
@@ -894,6 +914,15 @@ function renderWhy(){
   <div class="why"><b>Стоя, а не сидя.</b> В исследовании, где одна нога человека 12 недель работала стоя, а вторая сидя (Kinoshita, 2023), икроножная выросла на <b>9–12%</b> при прямом колене и практически не изменилась при согнутом. Камбаловидная выросла одинаково. Поэтому оба дня — стоя; сидя имеет смысл только как добавка на камбаловидную, если останется время.</div>
   <div class="why"><b>Растянутая позиция.</b> Частичные повторы в нижней, растянутой половине амплитуды дали больший рост икроножной, чем полная амплитуда (Kassiano, 2023). Отсюда второй день: только нижняя половина, пятка ниже площадки, пауза 2 секунды внизу.</div>
   <div class="why"><b>Ожидания.</b> Икры отзываются медленнее других мышц и сильно зависят от длины сухожилия — то есть от генетики. Протокол в исследовании — 5 подходов, 2 раза в неделю, 12 недель. Столько же и закладываем; в дневнике икр не было вообще, так что веса в таблице стартовые, поправь на первой неделе.</div>
+ </div>
+
+ <div class="card"><h3>Два режима базы: блок и силовой</h3>
+  <div class="why"><b>Что стоит по умолчанию.</b> Блочная схема: недели 1–3 — накопление (присед 3×8, румынка 3×10), недели 5–7 — интенсификация (присед 4×5 и 3×4, румынка 4×6 и 3×5), 8-я — тест. Присед по 10 повторов не идёт нигде: 8 → 7 → 6 → 5 → 4 → 3.</div>
+  <div class="why"><b>Честно про доказательность самой идеи блока.</b> Периодизация в мета-анализах даёт преимущество над непериодизированной программой, но <b>небольшое</b> (размер эффекта около 0,43 по максимальной силе). При этом лучше всего в сравнениях выглядит <b>волнообразная</b> модель — та самая, что была в твоей старой программе, — а не линейная и не блочная. То есть блок здесь — не «доказано лучшее», а конкретное решение под ситуацию.</div>
+  <div class="why"><b>Под какую ситуацию.</b> Ты возвращаешься после паузы, тренируешься 1,6 раза в неделю и меняешь глубину приседа. Заходить сразу на 85% после перерыва и с новой техникой — способ либо застрять, либо получить травму. Первые три недели дают накатать глубину на управляемом весе и набрать объём, который потом конвертируется в силу.</div>
+  <div class="why"><b>Но твоё возражение сильное.</b> При двух тренировках в неделю тяжёлых подходов на базу мало, а последние личные рекорды (85×2, 100×4) поставлены именно в тяжёлом диапазоне — там ты уверенно себя чувствуешь. Логика «база тяжёлая, объём в подсобке» рабочая: приседать и тянуть на 4–6, а ростовой объём набирать болгарскими, хип-трастом и махами, где вес безопаснее.</div>
+  <div class="why"><b>Поэтому — переключатель.</b> На вкладке «Тренировка» две кнопки: <b>«База: блок»</b> и <b>«База: силовой»</b>. В силовом режиме присед, румынка и хип-траст идут по 3–6 повторов с первой недели (присед 4×6 → 4×5 → 5×4 → разгрузка → 4×5 → 4×4 → 3×3 → тест; румынка 4×6 с 85 кг и до 3×3 со 107,5). Вся остальная программа не меняется. Переключается в любой момент, но не чаще раза в 2–3 недели — иначе не поймёшь, что сработало.</div>
+  <div class="why"><b>Одна поправка к силовому режиму.</b> Низкие повторы забирают объём, а объём — это то, из-за чего растёт форма. Компенсируй сбрасывающим подходом: после тяжёлых сделай один на 10–12 повторов с 60% рабочего веса. Времени почти не занимает, а недельный объём возвращает.</div>
  </div>
 
  <div class="card"><h3>Почему где-то 5 повторов, а где-то 20</h3>
@@ -967,12 +996,14 @@ document.getElementById('view').addEventListener('click',e=>{
   S.log[key]=S.log[key]||{sets:{}};S.log[key].sets[i]=S.log[key].sets[i]||[];
   const r=S.log[key].sets[i][j]=S.log[key].sets[i][j]||{};
   r.done=!r.done;
-  if(r.done&&r.w===undefined){const p=DAYS[S.day-1].ex[i].w[S.week-1];r.w=p.l;r.r=parseInt(p.r)||null;
+  if(r.done&&r.w===undefined){const p=sch(DAYS[S.day-1].ex[i],S.week-1);r.w=p.l;r.r=parseInt(p.r)||null;
    const box=c.parentElement;box.querySelector('[data-f=w]').value=p.l??'';box.querySelector('[data-f=r]').value=parseInt(p.r)||'';}
   c.classList.toggle('on',r.done);c.textContent=r.done?'✓':'';
-  const card=c.closest('.card'),p=DAYS[S.day-1].ex[i].w[S.week-1],rows=S.log[key].sets[i];
+  const card=c.closest('.card'),p=sch(DAYS[S.day-1].ex[i],S.week-1),rows=S.log[key].sets[i];
   card.classList.toggle('exdone',rows.length===p.s&&rows.every(x=>x&&x.done));
   save();fabUpdate();return;}
+ const mm=e.target.closest('[data-md]');
+ if(mm){S.mode=mm.dataset.md;save();render();return;}
  const md=e.target.closest('[data-mode]');
  if(md){curMode=md.dataset.mode;render();return;}
  if(e.target.id==='dayok'){const k=new Date().toISOString().slice(0,10);
