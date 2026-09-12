@@ -544,7 +544,7 @@ const KEY='train-v2';
 const nextMonday=()=>{const d=new Date();const s=(8-d.getDay())%7||7;d.setDate(d.getDate()+s);return d.toISOString().slice(0,10);};
 const store={get(){try{return JSON.parse(localStorage.getItem(KEY)||'{}');}catch(e){return {};}},
              set(v){try{localStorage.setItem(KEY,JSON.stringify(v));}catch(e){}}};
-let S=Object.assign({start:nextMonday(),week:1,day:1,mode:'block',short:false,pace:3.5,log:{},custom:[],daily:{},tab:'today'},store.get());
+let S=Object.assign({start:nextMonday(),week:1,day:1,mode:'block',short:false,pace:3.5,body:[{d:'2026-06-11',w:66.9,f:26.2}],log:{},custom:[],daily:{},tab:'today'},store.get());
 const save=()=>store.set(S);
 
 /* ---- альтернатива: силовой режим базы (тяжело с первой недели) ---- */
@@ -630,7 +630,7 @@ function barChart(data,unit){
 }
 
 /* ============ 6. ВКЛАДКИ ============ */
-const TABS=[['today','Тренировка'],['program','Программа'],['spine','Спина и кор'],['progress','Прогресс'],['history','История'],['why','Почему так']];
+const TABS=[['today','Тренировка'],['program','Программа'],['body','Тело'],['spine','Спина и кор'],['progress','Прогресс'],['history','История'],['why','Почему так']];
 const lastS=()=>sessions()[sessions().length-1];
 const daysSince=d=>Math.round((Date.now()-new Date(d))/864e5);
 
@@ -860,6 +860,62 @@ function renderHistory(){
  return h;
 }
 
+/* --- ТЕЛО: замеры и рекомпозиция --- */
+const GOAL={kcal:1800,p:135,f:60,c:170,rate:0.35};
+function renderBody(){
+ const B=[...S.body].sort((a,b)=>a.d<b.d?-1:1);
+ const ws=B.filter(x=>x.w);
+ const avg=n=>{const t=ws.slice(-n);return t.length?+(t.reduce((a,b)=>a+b.w,0)/t.length).toFixed(1):null;};
+ const cur=avg(3), first=ws[0], last=ws[ws.length-1];
+ const dw=(first&&last&&ws.length>1)?+(last.w-first.w).toFixed(1):null;
+ const wks=(first&&last)?Math.max(1,(new Date(last.d)-new Date(first.d))/6048e5):0;
+ const rate=dw!==null&&wks>=1?+(dw/wks).toFixed(2):null;
+ const waist=B.filter(x=>x.t), fw=waist[0], lw=waist[waist.length-1];
+ const fat=B.filter(x=>x.f);
+ const pts=ws.map(x=>({d:x.d,v:x.w,l:x.w+' кг'}));
+ const tpts=waist.map(x=>({d:x.d,v:x.t,l:x.t+' см'}));
+ return `
+ <div class="card green"><span class="pill dark">Рекомпозиция</span>
+  <div class="row" style="align-items:flex-end;margin:18px 0 14px"><div class="num">${cur??'—'}<i> кг</i></div>
+   <div style="margin-left:auto;text-align:right;font-size:13px;font-weight:700;opacity:.7">среднее по<br>последним замерам</div></div>
+  <div class="row" style="gap:14px;font-size:13px;font-weight:700;opacity:.8">
+   <div>${dw!==null?(dw>0?'+':'')+dw+' кг за период':'нужен второй замер'}</div>
+   ${rate!==null?`<div style="margin-left:auto">${rate>0?'+':''}${rate} кг/нед · цель −${GOAL.rate}</div>`:''}</div></div>
+
+ <div class="card"><h3>Записать замер</h3>
+  <div class="grid g4" style="margin-top:12px">
+   <div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">дата</div>
+    <input id="bd" type="date" value="${new Date().toISOString().slice(0,10)}" style="width:100%;text-align:center"></div>
+   <div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">вес, кг</div>
+    <input id="bw" type="number" step="0.1" inputmode="decimal" placeholder="66.9"></div>
+   <div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">талия, см</div>
+    <input id="bt" type="number" step="0.5" inputmode="decimal" placeholder="—"></div>
+   <div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">жир, %</div>
+    <input id="bf" type="number" step="0.1" inputmode="decimal" placeholder="—"></div></div>
+  <button class="btn primary" id="baddb" style="margin-top:12px;width:100%">Добавить</button>
+  <p style="font-size:12.5px;color:#6E727A;margin-top:10px;font-weight:600">Вес — утром после туалета, до еды. Талия — на уровне пупка, на выдохе, не втягивая. Жир — только с InBody, раз в 6–8 недель.</p></div>
+
+ ${pts.length>1?`<div class="card"><h3>Вес</h3>${lineChart(pts,'кг')}
+  <p style="font-size:12.5px;color:#6E727A;margin-top:10px">Смотри на направление за 3–4 недели, а не на соседние дни: колебания воды дают ±1,5 кг и легко прячут реальный результат.</p></div>`:''}
+ ${tpts.length>1?`<div class="card"><h3>Талия</h3>${lineChart(tpts,'см')}
+  <p style="font-size:12.5px;color:#6E727A;margin-top:10px">${fw&&lw?'Изменение: '+(lw.t-fw.t>0?'+':'')+(+(lw.t-fw.t).toFixed(1))+' см.':''} При рекомпозиции талия уходит быстрее веса — это и есть главный признак, что всё работает.</p></div>`:''}
+
+ <div class="card"><h3>Твои цифры</h3>
+  <div class="grid g4" style="margin-top:10px">
+   <div class="stat"><div class="v">${GOAL.kcal}</div><div class="k">ккал в день</div><div class="d flat">дефицит ~12%</div></div>
+   <div class="stat"><div class="v">${GOAL.p} г</div><div class="k">белка</div><div class="d up">не обсуждается</div></div>
+   <div class="stat"><div class="v">2</div><div class="k">тренировки в неделю</div><div class="d flat">8 в месяц</div></div>
+   <div class="stat"><div class="v">−${GOAL.rate}</div><div class="k">кг в неделю</div><div class="d flat">медленно = мышцы целы</div></div>
+  </div>
+  <p style="font-size:13px;color:#6E727A;margin-top:12px">По InBody от 11.06: 66,9 кг, жир 26,2% (17,5 кг), безжировая 49,4 кг, BMR 1437, расход ~2000–2100. Белок 135 г = 2,7 г на кг безжировой массы — верхняя граница рекомендаций для дефицита, и она здесь намеренная.</p></div>
+
+ ${B.length?`<div class="card"><h3>Все замеры</h3><div class="scroll"><table style="margin-top:6px">
+  <tr><th class="ex">Дата</th><th>Вес</th><th>Талия</th><th>Жир %</th><th></th></tr>
+  ${B.slice().reverse().map(x=>`<tr><td class="ex">${fmtD(x.d)}</td><td>${x.w??'—'}</td><td>${x.t??'—'}</td><td>${x.f??'—'}</td>
+   <td><button class="btn" data-bdel="${x.d}" style="font-size:11px;padding:5px 10px">убрать</button></td></tr>`).join('')}
+  </table></div></div>`:''}`;
+}
+
 /* --- СПИНА И КОР --- */
 function renderSpine(){
  const today=new Date().toISOString().slice(0,10);
@@ -937,6 +993,7 @@ const SRC=[
  ['Schoenfeld B. и др., 2021, Sports','Пересмотр «континуума повторов»: рекомендации по весу для силы, роста и выносливости','https://pmc.ncbi.nlm.nih.gov/articles/PMC7927075/'],
  ['Williams T. и др., 2017, Sports Medicine','Периодизация против непериодизированной программы: мета-анализ по максимальной силе','https://link.springer.com/article/10.1007/s40279-017-0734-y'],
  ['Moesgaard L. и др., 2022, Sports Medicine','Периодизация при равном объёме: сила и гипертрофия','https://pubmed.ncbi.nlm.nih.gov/35044672/'],
+ ['Barakat C. и др., 2020, Strength & Conditioning Journal','Рекомпозиция: можно ли одновременно растить мышцы и терять жир','https://journals.lww.com/nsca-scj/Fulltext/2020/10000/Body_Recomposition__Can_Trained_Individuals_Build.3.aspx'],
  ['Morton R. и др., 2018, Br J Sports Med','Белок: 1,6 г/кг как точка, после которой прибавки нет','https://pubmed.ncbi.nlm.nih.gov/28698222/'],
  ['Систематический обзор с мета-анализом, 2021','Что реально уменьшает грудной кифоз','https://www.sciencedirect.com/science/article/abs/pii/S2468781221001223'],
  ['Сравнение вариантов приседа по ЭМГ','Активность мышц в приседе со штангой, в Смите и в гакк-машине','https://www.researchgate.net/publication/337400852_Evaluation_of_Muscle_Activities_During_Different_Squat_Variations_Using_Electromyography_Signals'],
@@ -997,6 +1054,19 @@ function renderWhy(){
   <div class="why"><b>Стоя, а не сидя.</b> В исследовании, где одна нога человека 12 недель работала стоя, а вторая сидя (Kinoshita, 2023), икроножная выросла на <b>9–12%</b> при прямом колене и практически не изменилась при согнутом. Камбаловидная выросла одинаково. Поэтому оба дня — стоя; сидя имеет смысл только как добавка на камбаловидную, если останется время.</div>
   <div class="why"><b>Растянутая позиция.</b> Частичные повторы в нижней, растянутой половине амплитуды дали больший рост икроножной, чем полная амплитуда (Kassiano, 2023). Отсюда второй день: только нижняя половина, пятка ниже площадки, пауза 2 секунды внизу.</div>
   <div class="why"><b>Ожидания.</b> Икры отзываются медленнее других мышц и сильно зависят от длины сухожилия — то есть от генетики. Протокол в исследовании — 5 подходов, 2 раза в неделю, 12 недель. Столько же и закладываем; в дневнике икр не было вообще, так что веса в таблице стартовые, поправь на первой неделе.</div>
+ </div>
+
+ <div class="card"><h3>Рекомпозиция: почему не выходило</h3>
+  <div class="why"><b>Рекомпозиция требует двух сигналов одновременно</b> — дефицита и стимула к росту мышцы. По обзору Barakat (2020) она надёжнее всего идёт у новичков, у тех, кто возвращается после перерыва, и у людей с заметным процентом жира — то есть ты подходишь по всем трём пунктам. Но обязательных условий два: <b>прогрессирующие силовые</b> и <b>высокий белок</b>.</div>
+  <div class="why"><b>Что было у тебя.</b> За 7 месяцев 46 тренировок — 1,6 в неделю, с разбросом от 8 в месяц до 1. Веса и упражнения менялись почти каждый раз, поэтому прогрессия отследилась только в тяге. Сигнал «строй мышцу» был слабый и рваный. В такой ситуации дефицит даёт минус жир и минус мышцы — вес падает, форма не меняется. Ровно то, что ты и описала.</div>
+  <div class="why"><b>Что критично поменять — по порядку важности.</b><br>
+   1. <b>Две тренировки в неделю без пропусков.</b> Не три, не «как получится» — ровно 8 в месяц. Это первое условие, без него остальное не работает.<br>
+   2. <b>Белок 135 г каждый день</b>, включая выходные. Это 2,7 г на кг твоей безжировой массы — верхняя граница рекомендаций для дефицита, и она здесь намеренная: белок защищает мышцы, когда калорий мало.<br>
+   3. <b>Дефицит мягкий: 1800, а не 1700.</b> При рекомпозиции резать сильно вредно — чем глубже дефицит, тем хуже растёт мышца. Темп −0,3…0,4 кг в неделю.<br>
+   4. <b>Прогрессия в приложении.</b> Один и тот же набор упражнений, вес растёт по правилу. Именно это отличает «ходить в зал» от «строить мышцу».<br>
+   5. <b>Сон 7–9 часов и 8–10 тысяч шагов.</b> Шаги дают половину дефицита, не трогая тарелку.</div>
+  <div class="why"><b>Как понять, что идёт.</b> Вес — плохой индикатор: при рекомпозиции он может стоять месяцами, пока состав меняется. Смотри на три вещи: <b>талия</b> (уходит быстрее веса), <b>веса в зале</b> (растут — значит мышца не теряется) и <b>InBody раз в 6–8 недель</b>. Вкладка «Тело» собирает всё это в один график.</div>
+  <div class="why"><b>Сроки.</b> Реалистично за 12–16 недель: минус 2–3 кг жира, плюс 0,5–1 кг мышц, талия минус 3–5 см при почти том же весе на весах. Это выглядит скучно в цифрах и заметно в зеркале. Быстрее не бывает — и если кажется, что бывает, то это вода.</div>
  </div>
 
  <div class="card"><h3>Почему в дне именно эти упражнения</h3>
@@ -1112,7 +1182,7 @@ function renderWhy(){
 function render(){
  renderNav();
  const v=document.getElementById('view');
- v.innerHTML={today:renderToday,program:renderProgram,spine:renderSpine,progress:renderProgress,history:renderHistory,why:renderWhy}[S.tab]();
+ v.innerHTML={today:renderToday,program:renderProgram,body:renderBody,spine:renderSpine,progress:renderProgress,history:renderHistory,why:renderWhy}[S.tab]();
  fabUpdate();window.scrollTo({top:0});
 }
 document.getElementById('nav').addEventListener('click',e=>{
@@ -1139,6 +1209,14 @@ document.getElementById('view').addEventListener('click',e=>{
  if(mm){S.mode=mm.dataset.md;save();render();return;}
  const md=e.target.closest('[data-mode]');
  if(md){curMode=md.dataset.mode;render();return;}
+ const bdel=e.target.closest('[data-bdel]');
+ if(bdel){S.body=S.body.filter(x=>x.d!==bdel.dataset.bdel);save();render();return;}
+ if(e.target.id==='baddb'){
+  const g=id=>{const v=document.getElementById(id).value;return v===''?undefined:+v;};
+  const d=document.getElementById('bd').value;
+  if(!d||(g('bw')===undefined&&g('bt')===undefined&&g('bf')===undefined)){alert('Заполни хотя бы вес, талию или процент жира.');return;}
+  S.body=S.body.filter(x=>x.d!==d);
+  S.body.push({d,w:g('bw'),t:g('bt'),f:g('bf')});save();render();return;}
  if(e.target.id==='dayok'){const k=new Date().toISOString().slice(0,10);
   if(S.daily[k])delete S.daily[k];else S.daily[k]=1;save();render();return;}
  if(e.target.id==='exp'){
