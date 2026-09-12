@@ -640,6 +640,19 @@ function renderNav(){
  document.getElementById('hdsub').innerHTML=`нед. ${S.week} · день ${S.day}<span class="only-wide"> · последняя ${fmtD(ls.d)} (${daysSince(ls.d)} дн. назад)</span>`;
 }
 
+/* ---- какой день логичнее следующим, судя по последней тренировке ---- */
+function suggestDay(){
+ const ls=lastS(), names=ls.e.map(x=>x[0]).join(' ');
+ const knee=/присед|выпад|болгар|разгибание голени/i.test(names);
+ const hip=/румын|мост|хип-траст|отжиман|махи ног/i.test(names);
+ let d=1,why='';
+ if(knee&&!hip){d=2;why='там был присед, а таза и жима не было';}
+ else if(hip&&!knee){d=1;why='там была задняя цепь, а приседа не было';}
+ else if(knee&&hip){d=2;why='там было и то и другое, но хип-траста и румынки не было';}
+ else {d=1;why='тяжёлых движений на ноги там не было';}
+ return {d,why,ls};
+}
+
 /* --- ТРЕНИРОВКА --- */
 function renderToday(){
  const day=DAYS[S.day-1],wi=S.week-1,key=`w${S.week}d${S.day}`,log=S.log[key]||{sets:{}};
@@ -657,6 +670,9 @@ function renderToday(){
   <div class="card tight"><div class="row" style="flex-wrap:wrap">
    <select id="selw">${WK_TYPE.map((t,i)=>`<option value="${i+1}" ${S.week===i+1?'selected':''}>Неделя ${i+1} — ${t}</option>`).join('')}</select>
    <select id="seld">${DAYS.map(d=>`<option value="${d.n}" ${S.day===d.n?'selected':''}>День ${d.n}</option>`).join('')}</select></div>
+   ${(()=>{const sg=suggestDay();return sg.d===S.day?'':`<div class="why" style="margin-top:12px;padding:12px">
+     <b>Совет по последней тренировке.</b> ${fmtD(sg.ls.d)} ты делала: ${sg.ls.e.map(x=>x[0].toLowerCase()).join(', ')}. Логичнее взять <b>день ${sg.d}</b> — ${sg.why}.
+     <div style="margin-top:8px"><button class="btn" data-go="${sg.d}" style="font-size:12.5px;padding:7px 13px">Перейти на день ${sg.d}</button></div></div>`;})()}
    <div class="row" style="gap:6px;margin-top:10px">
     <button class="btn ${S.mode==='block'?'primary':''}" data-md="block" style="font-size:13px;padding:8px 14px">База: блок</button>
     <button class="btn ${S.mode==='strength'?'primary':''}" data-md="strength" style="font-size:13px;padding:8px 14px">База: силовой</button></div>
@@ -1115,6 +1131,8 @@ document.getElementById('view').addEventListener('click',e=>{
   save();fabUpdate();
   if(r.done){const ex=DAYS[S.day-1].ex[i];startRest(ex.ss?60:(p.l&&p.l>=25)?120:90);}
   return;}
+ const go=e.target.closest('[data-go]');
+ if(go){S.day=+go.dataset.go;save();render();return;}
  const sh=e.target.closest('[data-sh]');
  if(sh){S.short=sh.dataset.sh==='1';save();render();return;}
  const mm=e.target.closest('[data-md]');
