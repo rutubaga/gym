@@ -5,3 +5,5 @@
 !index.html
 !.nojekyll
 !тренировки-v2.html
+!tests/
+!tests/gym.test.cjs

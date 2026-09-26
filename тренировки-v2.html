@@ -133,6 +133,17 @@ svg text{fill:var(--muted);font-size:11px;font-weight:600}
 .fab .prog i{display:block;height:100%;background:var(--green);width:0;transition:width .25s;border-radius:999px}
 .hide{display:none}
 @media(max-width:600px){.only-wide{display:none}.hd h1{font-size:21px}.num{font-size:34px}}
+.set-block{padding:12px 0;border-top:1px solid var(--line)}
+.set-title{margin-bottom:8px;font-size:13px}.set-title .chk{margin-left:auto;width:44px;border:0;padding:0;cursor:pointer;flex-shrink:0}
+.segment{display:grid;grid-template-columns:12px minmax(0,1fr) 64px minmax(0,1fr) 24px;gap:5px;align-items:center;margin:8px 0}
+.segment input,.segment select{width:100%;min-width:0;padding:10px 8px;font-size:16px;border-radius:12px}
+.segment select{padding-right:18px}.segment-arrow{color:#6E727A}
+.text-btn{border:0;background:none;color:#157848;font:inherit;font-size:12px;padding:8px 0;cursor:pointer;text-align:left}
+.segment .text-btn{text-align:center;font-size:20px}.choice-label{display:block;font-size:12px;color:#6E727A;margin-bottom:12px}
+.exercise-choice{display:block;width:100%;white-space:normal;border-radius:12px;margin-top:6px}
+.program-ex{display:flex;gap:12px;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+.program-ex .pill{white-space:nowrap;flex-shrink:0}.program-ex .cue{font-size:12px}
+@media(max-width:420px){.exh{flex-wrap:wrap}.exh .tg{display:flex;gap:8px;align-items:center;width:100%}.exh .rir{margin:0}.card{padding:15px}.segment input{font-size:16px}}
 </style>
 </head>
 <body>
@@ -431,65 +442,39 @@ const HISTORY = [
 HISTORY.forEach(x=>x.e.forEach(pair=>{if(pair[0]==='Отжимания'){
  const mx=Math.max(...pair[1].map(v=>v[1]||0));pair[0]=mx>=10?'Отжимания с колен':'Отжимания полные';}}));
 
-/* ============ 2. ПРОГРАММА: 8 недель, 3 дня ============
-   l — рабочий вес (кг), r — повторы, s — подходы, rir — запас до отказа */
-const WK_TYPE = ['Набор','Набор','Набор','Разгрузка','Интенсив','Интенсив','Пик','Тест / разгрузка'];
-const WK_NOTE = [
- 'Вход в объём. Легко — так и надо: техника, темп 3-0-1, полная амплитуда.',
- 'Тот же объём, вес +5%. Отдых на базе не меньше 90 секунд, иначе следующий подход провалится.',
- 'Пик объёма блока. Последние подходы должны быть тяжёлыми (RIR 1–2), но без отказа.',
- 'Разгрузка: −40% объёма, −25% веса. Это не пропуск — это то, из-за чего вырастут веса в 5-й неделе.',
- 'Веса выше, повторов меньше. Здесь отдых на базе увеличь до 2–3 мин — это про силу, а не про экономию времени.',
- 'Самый тяжёлый диапазон по объёму×весу. Если сон/еда просели — оставь вес прошлой недели.',
- 'Пик: минимум объёма, максимум веса. Один-два подхода на 3–4 повтора решают.',
- 'Тест новых максимумов на 3–5 повторов + разгрузка вокруг него. С них строим следующий блок.'
+/* ============ 2. ПРОГРАММА: три последовательные тренировки ============ */
+const PROGRAM_VERSION='abc-v1';
+const DAYS=[
+ {n:1,label:'А',name:'Ноги и ягодицы',color:'d1',ex:[
+  {id:'a-squat',name:'Гакк-присед',options:['Гакк-присед','Маятниковый присед','Жим ногами (платформа)'],s:3,r:'8–12',m:'ягодицы / квадрицепс',rest:150,cue:'Выбери комфортный тренажёр. Если плечевые упоры усиливают боль, попробуй подходящий жим ногами. Веса разных тренажёров не сравнивай.'},
+  {id:'a-row',name:'Тяга сидя с упором грудью',s:3,r:'8–12',m:'спина',rest:120,cue:'Тренажёр для тяги к поясу с подушкой под грудь. Сядь лицом к упору и тяни ручки к себе, не отрывая грудь.'},
+  {id:'a-curl',name:'Сгибание ног сидя',s:3,r:'10–15',m:'задняя поверхность бедра',rest:90,cue:'Контролируй сгибание и возвращение веса. Настрой валик и положение сиденья.'},
+  {id:'a-press',name:'Жим от груди в тренажёре',options:['Жим от груди в тренажёре','Отжимания от лавки'],s:2,r:'8–12',m:'грудь / трицепс',rest:120,cue:'Сидя в тренажёре, выжимай ручки от груди вперёд. Альтернатива — отжимания руками от лавки; для них укажи вес 0.'},
+  {id:'a-calf',name:'Подъёмы на носки в жиме ногами',options:['Подъёмы на носки в жиме ногами','Подъёмы на носки стоя'],s:3,r:'10–20',m:'икры',rest:90,cue:'Колено почти прямое, без переразгибания. Контролируемая амплитуда без пружинящих движений; оборудование без болезненного давления на плечи.'},
+  {id:'a-abduction',name:'Разведение ног сидя',s:2,r:'12–20',m:'ягодичные',rest:90,cue:'Тренажёр с подушками снаружи коленей: разводи колени в стороны и плавно возвращай. Это упражнение на ягодицы.'}
+ ]},
+ {n:2,label:'Б',name:'Мост и задняя поверхность бедра',color:'d2',ex:[
+  {id:'b-bridge',name:'Ягодичный мост в Смите',s:3,r:'8–12',m:'ягодицы',rest:150,cue:'Верх спины на лавке, стопы на устойчивом степе, гриф в Смите. Сохраняй одинаковые высоту опор, постановку стоп и амплитуду. Учитывай отдельно от моста в другом тренажёре.'},
+  {id:'b-pull',name:'Тяга верхнего блока',options:['Тяга верхнего блока','Подтягивания в гравитроне'],s:3,r:'8–12',m:'спина',rest:120,cue:'В гравитроне записывай помощь тренажёра: меньший противовес — более тяжёлое упражнение. Он не входит в тоннаж.'},
+  {id:'b-curl',name:'Сгибание ног сидя',options:['Сгибание ног сидя','Сгибание ног лёжа'],s:3,r:'10–15',m:'задняя поверхность бедра',rest:90,cue:'Выбирай удобный тренажёр. Сгибания сидя и лёжа учитываются отдельно.'},
+  {id:'b-press',name:'Жим гантелей на наклонной лавке',s:2,r:'8–12',m:'грудь / трицепс',rest:120,cue:'Лавка под углом около 30°. Лёжа на спине, выжимай гантели от груди вверх. Записывай вес одной гантели.'},
+  {id:'b-calf',name:'Подъёмы на носки в жиме ногами',options:['Подъёмы на носки в жиме ногами','Подъёмы на носки стоя'],s:3,r:'10–20',m:'икры',rest:90,cue:'Контролируй опускание и подъём, не пружинь. Сравнивай веса только в одном тренажёре.'},
+  {id:'b-shoulder',name:'Махи гантелями в стороны',s:2,r:'12–20',m:'средняя дельта',rest:90,cue:'Стоя, поднимай гантели через стороны примерно до уровня плеч без раскачивания. Записывай вес одной гантели.'}
+ ]},
+ {n:3,label:'В',name:'Задняя поверхность бедра и ягодицы',color:'d3',ex:[
+  {id:'c-rdl',name:'Румынская тяга',s:2,r:'8–10',m:'задняя поверхность бедра / ягодицы',rest:150,cue:'Небольшой объём в дополнение к сгибаниям. Комфортная контролируемая амплитуда; движение тазом назад.'},
+  {id:'c-row',name:'Тяга сидя с упором грудью',s:2,r:'8–12',m:'спина',rest:120,cue:'Тренажёр для тяги к поясу с подушкой под грудь. Тяни ручки к себе, не отрывая грудь от упора.'},
+  {id:'c-lunge',name:'Выпады назад, держась за опору',options:['Выпады назад, держась за опору','Махи ногой назад на блоке'],s:2,r:'8–12',m:'ягодицы / ноги',rest:150,cue:'На каждую ногу. Один отмеченный подход — обе стороны. Для махов вместо выпадов ориентир 12–15 повторов на сторону.'},
+  {id:'c-press',name:'Жим от груди в тренажёре',options:['Жим от груди в тренажёре','Отжимания от лавки'],s:2,r:'8–12',m:'грудь / трицепс',rest:120,cue:'Сидя в тренажёре, выжимай ручки от груди вперёд. Для отжиманий руками от лавки вес 0 означает собственный вес.'},
+  {id:'c-curl',name:'Сгибание ног сидя',options:['Сгибание ног сидя','Сгибание ног лёжа'],s:3,r:'10–15',m:'задняя поверхность бедра',rest:90,cue:'Сгибания остаются основным упражнением на заднюю поверхность бедра.'},
+  {id:'c-calf',name:'Подъёмы на носки в жиме ногами',options:['Подъёмы на носки в жиме ногами','Подъёмы на носки стоя'],s:3,r:'10–20',m:'икры',rest:90,cue:'Почти прямое колено, удобная амплитуда. Пятки поднимай и опускай без отскока.'}
+ ]}
 ];
-
-const DAYS = [
-{n:1,name:'Присед + тяга + кор',color:'d1',cond:'Низ и верх чередуются через одно: пока работает спина, ноги и дыхание отдыхают. Двух тяжёлых на ноги подряд нет нигде. Отдых 1,5–2 мин на базе, 60–90 с на изоляции. В конце 10 мин лёгкого кардио.',ex:[
- {name:'Присед ниже параллели',cue:'Глубина = таз чуть ниже линии колена, не «в пол». Темп 3-0-1. Если глубина не идёт — смотри замены, они дают то же самое.',m:'квадрицепс/ягодицы',
-  w:[{s:3,r:'8',l:70,rir:3},{s:3,r:'8',l:72.5,rir:3},{s:4,r:'7',l:75,rir:2},{s:2,r:'8',l:57.5,rir:4},{s:4,r:'6',l:77.5,rir:2},{s:4,r:'5',l:82.5,rir:1},{s:3,r:'4',l:85,rir:1},{s:2,r:'3 тест',l:87.5,rir:1}]},
- {name:'Тяга верхнего блока',cue:'Нейтральный хват, пауза 1 с у груди, руки распрямлять до конца. Стоит вторым специально: пока работает спина, ноги и дыхание отдыхают после приседа.',m:'спина',
-  w:[{s:3,r:'10',l:45,rir:3},{s:3,r:'10',l:47.5,rir:2},{s:3,r:'8',l:52.5,rir:2},{s:2,r:'10',l:40,rir:4},{s:4,r:'8',l:55,rir:2},{s:4,r:'6',l:60,rir:1},{s:3,r:'5',l:65,rir:1},{s:3,r:'8',l:55,rir:3}]},
- {name:'Болгарские выпады с наклоном',cue:'Корпус наклонён вперёд ~30°, шаг подальше от лавки. Так работает большая ягодичная, а не квадрицепс. На каждую ногу. Стоят третьими, а не сразу после приседа: два тяжёлых упражнения на ноги подряд — самый быстрый способ словить дурноту. Если дыхание после тяги ещё не вернулось — сядь и досиди, спешить некуда.',m:'большая ягодичная',
-  w:[{s:3,r:'8',l:45,rir:3},{s:3,r:'10',l:45,rir:2},{s:3,r:'12',l:45,rir:2},{s:2,r:'8',l:35,rir:4},{s:3,r:'8',l:50,rir:2},{s:3,r:'10',l:50,rir:2},{s:3,r:'8',l:55,rir:1},{s:3,r:'8',l:45,rir:3}]},
- {name:'Тяга к лицу (face pull)',cue:'Канат на уровне лица, локти выше кистей, в конце развернуть ладони наружу. Главное упражнение против круглых плеч.',m:'верх спины',
-  w:[{s:3,r:'15',l:11,rir:2},{s:3,r:'15',l:12.5,rir:2},{s:3,r:'20',l:12.5,rir:1},{s:2,r:'15',l:9,rir:3},{s:3,r:'15',l:14,rir:2},{s:3,r:'15',l:15,rir:1},{s:3,r:'15',l:17.5,rir:1},{s:3,r:'15',l:12.5,rir:2}]},
- {p:2,name:'Подъёмы на носки стоя',cue:'Колено прямое — работает икроножная (та, что даёт объём). Пауза 2 с в нижней точке на растяжении, вверх до упора. Медленно. Последний подход — только нижняя половина амплитуды, пятка ниже площадки: растянутая позиция растит икру лучше полной. Теперь один раз в неделю, а не два.',m:'икроножная',
-  w:[{s:3,r:'12',l:40,rir:2},{s:3,r:'12',l:45,rir:2},{s:4,r:'12',l:50,rir:1},{s:2,r:'12',l:30,rir:4},{s:4,r:'10',l:55,rir:1},{s:4,r:'10',l:60,rir:1},{s:4,r:'8',l:65,rir:1},{s:3,r:'12',l:45,rir:2}]},
- {p:2,name:'Паллоф-пресс',cue:'Анти-скручивание. Блок сбоку, руки от груди вперёд, корпус не поворачивается. На каждую сторону. Вернулся в день 1: день так и называется — «присед + тяга + кор», а кора в нём не было.',m:'кор',
-  w:[{s:3,r:'10',l:10,rir:2},{s:3,r:'10',l:12.5,rir:2},{s:3,r:'12',l:12.5,rir:1},{s:2,r:'10',l:7.5,rir:3},{s:3,r:'10',l:15,rir:2},{s:3,r:'10',l:17.5,rir:1},{s:3,r:'10',l:20,rir:1},{s:3,r:'12',l:12.5,rir:2}]}
-]},
-{n:2,name:'Ягодицы + жим + верх спины',color:'d2',cond:'Главный день для формы ягодиц, поэтому мостик первым, пока ты свежая. Низ и верх чередуются через одно. Отдых 1,5–2 мин на базе. В конце 10 мин лёгкого кардио.',ex:[
- {name:'Хип-траст',cue:'Главное на объём ягодицы. Пауза 1 с вверху, подбородок к груди, рёбра вниз, таз доводить до конца.',m:'большая ягодичная',
-  w:[{s:3,r:'10',l:160,rir:3},{s:4,r:'10',l:170,rir:2},{s:4,r:'8',l:180,rir:2},{s:2,r:'10',l:130,rir:4},{s:4,r:'8',l:190,rir:2},{s:4,r:'6',l:200,rir:1},{s:3,r:'5',l:210,rir:1},{s:3,r:'10',l:170,rir:3}]},
- {name:'Отжимания полные',cue:'Вторым упражнением, сразу после мостика: мостик грузит таз и совсем не трогает грудь, так что на отжимания ты приходишь свежей. Пауза 1 с внизу. Первые три подхода только полные; если форма ломается — оставшиеся с колен, но это добивка, а не зачёт.',m:'грудь/трицепс',
-  w:[{s:5,r:'5',l:0,rir:3},{s:5,r:'6',l:0,rir:2},{s:5,r:'6',l:0,rir:2},{s:3,r:'4',l:0,rir:4},{s:5,r:'6',l:0,rir:2},{s:5,r:'7',l:0,rir:2},{s:4,r:'8',l:0,rir:1},{s:1,r:'макс тест',l:0,rir:0}]},
- {name:'Румынская тяга',cue:'Таз назад, спина ровная, штанга по бедру, стоп на середине голени.',m:'бицепс бедра/ягодицы',
-  w:[{s:3,r:'10',l:75,rir:3},{s:3,r:'10',l:80,rir:3},{s:3,r:'8',l:85,rir:2},{s:2,r:'8',l:65,rir:4},{s:4,r:'8',l:87.5,rir:2},{s:4,r:'6',l:92.5,rir:2},{s:3,r:'5',l:100,rir:1},{s:2,r:'5 тест',l:105,rir:1}]},
- {name:'Горизонтальная тяга',cue:'К поясу, пауза 1 с в сведении лопаток, корпус не раскачивать. Главное движение для среднего отдела спины — того, что ноет.',m:'спина',
-  w:[{s:3,r:'10',l:40,rir:3},{s:3,r:'10',l:42.5,rir:2},{s:3,r:'8',l:45,rir:2},{s:2,r:'10',l:32.5,rir:4},{s:3,r:'10',l:47.5,rir:2},{s:3,r:'8',l:50,rir:1},{s:3,r:'8',l:52.5,rir:1},{s:3,r:'10',l:42.5,rir:3}]},
- {p:2,name:'Сгибание голени сидя',cue:'Сидя, а не лёжа: бедро согнуто — бицепс бедра работает в растяжении. Веса взял по твоим записям: рабочий диапазон 27–36 кг.',m:'бицепс бедра',
-  w:[{s:3,r:'12',l:27.5,rir:2},{s:3,r:'12',l:30,rir:2},{s:3,r:'10',l:32.5,rir:1},{s:2,r:'12',l:22.5,rir:4},{s:3,r:'10',l:35,rir:1},{s:3,r:'8',l:37.5,rir:1},{s:3,r:'8',l:40,rir:1},{s:3,r:'12',l:30,rir:3}]},
- {p:2,name:'Боковые отведения с наклоном',cue:'Корпус наклонён вперёд ~15°, руки идут чуть за линию тела. Так дельта работает и в нижней части амплитуды. Последнее упражнение дня — суперсета тут больше нет, Y-подъёмы переехали в ежедневную рутину.',m:'средняя дельта',
-  w:[{s:3,r:'15',l:3,rir:1},{s:3,r:'15',l:4,rir:1},{s:3,r:'12',l:5,rir:0},{s:2,r:'15',l:2,rir:3},{s:3,r:'15',l:4,rir:1},{s:3,r:'12',l:5,rir:0},{s:3,r:'15',l:5,rir:0},{s:3,r:'15',l:3,rir:1}]}
-]},
-{n:3,name:'По желанию · 25 минут',color:'d3',cond:'Только если случилась третья тренировка. Пропуск не ломает план — первые два дня закрывают всё главное.',ex:[
- {name:'Жим гантелей 30°',cue:'Наклон 30°, вниз до растяжения груди, вверх мощно.',m:'грудь',
-  w:[{s:3,r:'10',l:8,rir:3},{s:3,r:'10',l:9,rir:2},{s:3,r:'8',l:10,rir:2},{s:2,r:'10',l:7,rir:4},{s:3,r:'10',l:10,rir:2},{s:3,r:'8',l:11,rir:1},{s:3,r:'8',l:12,rir:1},{s:3,r:'10',l:9,rir:3}]},
- {name:'Выпады одной ногой',cue:'Опускаться медленно, держась за опору; подъём энергичный. Корпус чуть вперёд. На каждую ногу. Стоят вторыми, а не первыми: тяжёлое упражнение на одной ноге сразу с холода — это то, после чего 16.09 пришлось уйти домой. Жим перед ними и разминка не пропускаются.',m:'ягодицы/квадрицепс',
-  w:[{s:3,r:'10',l:25,rir:3},{s:3,r:'10',l:27.5,rir:2},{s:3,r:'10',l:30,rir:2},{s:2,r:'10',l:20,rir:4},{s:3,r:'8',l:32.5,rir:2},{s:3,r:'8',l:35,rir:1},{s:3,r:'8',l:37.5,rir:1},{s:3,r:'10',l:27.5,rir:3}]},
- {name:'Фрогги',cue:'Своим весом, последний подход на максимум повторов.',m:'ягодицы',
-  w:[{s:2,r:'20',l:0,rir:1},{s:2,r:'22',l:0,rir:1},{s:2,r:'25',l:0,rir:0},{s:2,r:'15',l:0,rir:3},{s:2,r:'25',l:0,rir:1},{s:2,r:'25',l:0,rir:0},{s:2,r:'30',l:0,rir:0},{s:2,r:'20',l:0,rir:1}]},
- {name:'Махи ногой назад на блоке',cue:'Жопомахи. Нога чуть в сторону от средней линии, таз не крутить. Растит нижнюю и боковую часть большой ягодичной — то, что сглаживает переход к бедру. На каждую ногу.',m:'большая ягодичная',
-  w:[{s:3,r:'12',l:30,rir:2},{s:3,r:'12',l:32.5,rir:2},{s:3,r:'12',l:35,rir:1},{s:2,r:'12',l:25,rir:4},{s:3,r:'12',l:37.5,rir:1},{s:3,r:'12',l:40,rir:1},{s:3,r:'10',l:45,rir:1},{s:3,r:'12',l:32.5,rir:2}]},
- {name:'Отведения бедра в наклоне',cue:'Единственный раз в неделю — специально. Корпус наклонён вперёд, нога уходит назад-вбок, а не строго вбок.',m:'средняя ягодичная',
-  w:[{s:2,r:'15',l:3,rir:1},{s:2,r:'15',l:3,rir:1},{s:2,r:'15',l:4,rir:1},{s:2,r:'15',l:2,rir:3},{s:2,r:'15',l:4,rir:1},{s:2,r:'15',l:4,rir:1},{s:2,r:'15',l:5,rir:1},{s:2,r:'15',l:3,rir:1}]},
- {name:'Дэд-баг',cue:'Анти-разгибание. Поясница прижата к полу, рёбра вниз, дышишь ровно.',m:'кор',
-  w:[{s:3,r:'8',l:0,rir:2},{s:3,r:'10',l:0,rir:2},{s:3,r:'12',l:0,rir:1},{s:2,r:'8',l:0,rir:3},{s:3,r:'10',l:0,rir:1},{s:3,r:'12',l:0,rir:1},{s:3,r:'12',l:0,rir:1},{s:3,r:'10',l:0,rir:2}]},
- {name:'Валик под грудной отдел + дыхание',cue:'Заминка: 8–10 разгибаний на валике по отделам, затем 5 медленных выдохов в позе 90/90.',m:'грудной отдел',
-  w:[{s:1,r:'5 мин',l:0,rir:3},{s:1,r:'5 мин',l:0,rir:3},{s:1,r:'5 мин',l:0,rir:3},{s:1,r:'5 мин',l:0,rir:3},{s:1,r:'5 мин',l:0,rir:3},{s:1,r:'5 мин',l:0,rir:3},{s:1,r:'5 мин',l:0,rir:3},{s:1,r:'5 мин',l:0,rir:3}]}
-]}];
+const LEGACY_NAMES=[
+ ['Присед ниже параллели','Тяга верхнего блока','Болгарские выпады с наклоном','Тяга к лицу (face pull)','Подъёмы на носки стоя','Паллоф-пресс'],
+ ['Хип-траст','Отжимания полные','Румынская тяга','Горизонтальная тяга','Сгибание голени сидя','Боковые отведения с наклоном'],
+ ['Жим гантелей 30°','Выпады одной ногой','Фрогги','Махи ногой назад на блоке','Отведения бедра в наклоне','Дэд-баг','Валик под грудной отдел + дыхание']
+];
 
 /* ---- ежедневная рутина на осанку (8–10 мин, дома) ---- */
 const ROUTINE=[
@@ -540,54 +525,25 @@ const VID={
 const yt=n=>'https://www.youtube.com/results?search_query='+encodeURIComponent(VID[n]||(n+' техника выполнения'));
 const VIDEO_HOME='https://t.me/danilakaburov';
 
-/* ---- разрешённые замены: то же воздействие, меньше техники ---- */
-const ALT={
- 'Боковые отведения с наклоном':[
-  ['Подтягивания','То, чем ты закончила день 2 двенадцатого сентября: 8, 11 и 8 повторов. Честно про размен: по мышцам это не равноценно — отведения это плечи, подтягивания спина. Меняешь — за неделю остаются боковые отведения из дня 1, а верх спины получает лишнюю вертикальную тягу. Для последнего упражнения дня это нормальный размен, если подтягиваться хочется больше, чем махать гантелями.'],
-  ['Отведения в тренажёре','Если гантели тяжело удержать в конце подхода — в тренажёре проще довести до отказа.']],
- 'Тяга верхнего блока':[
-  ['Подтягивания','Движение то же, вертикальная тяга, амплитуда полнее. Вес или помощь подбирай так, чтобы выходило 8–10 повторов в подходе.']],
- 'Присед ниже параллели':[
-  ['Маятниковый присед','Ты уже делала: 80×8, 100×4, 90×6 (20.09). Корпус остаётся вертикальнее, чем в гакке, таз сгибается сильнее — по механике это ближе к штанге по работе ягодицы. Но честно: отдельных исследований по маятнику нет вообще, вся аргументация механическая.'],
-  ['Гакк-присед','Меньше всего нагружает спину из вариантов со штангой: корпус лежит на спинке, держать положение не надо. В сравнениях активность разгибателей спины и полусухожильной в гакке ниже, чем во всех остальных приседах. Минус — это самый квадрицепсовый вариант: ягодица и задняя поверхность включаются меньше, чем в приседе со штангой. Частично лечится высокой постановкой стоп на платформе.'],
-  ['Присед в Смите','Траектория фиксирована, балансировать нечего, но гриф по-прежнему лежит на трапециях и верх спины держит положение. Промежуточный вариант между штангой и гакком.'],
-  ['Жим ногами (платформа)','Спина полностью на спинке, на плечах вообще ничего не лежит — если верх спины болит именно от грифа, это лучший вариант. По твоим цифрам: недели 1–3 — 3×10 по 120–140 кг, недели 5–7 — 4×8 по 150–170 кг.'],
-  ['Присед с возвышением под пятки','Блин 2–3 см под пятки. Причина №1, по которой глубина не идёт, — голеностоп, а не «неправильная техника».'],
-  ['Присед на ящик до касания','Ящик задаёт одинаковую глубину каждый раз, её не надо угадывать.']],
- 'Болгарские выпады с наклоном':[
-  ['Выпады назад в Смите','Если шатает — та же работа по фиксированной траектории.'],
-  ['Выпады назад с гантелями','Проще болгарских по балансу, ягодица работает так же.']],
- 'Хип-траст':[['Мостик в Смите или в тренажёре','Ты делала оба — бери тот, где штанга не съезжает.']],
- 'Отжимания полные':[['Отжимания от лавки','Руки на лавке: амплитуда полная, а нагрузка меньше, чем с колен.']],
- 'Тяга к лицу (face pull)':[['Разведения в наклоне с гантелями 2–4 кг','Если канат занят.']],
- 'Боковые отведения':[['Отведения в тренажёре','Если гантели тяжело удержать в конце подхода — в тренажёре проще довести до отказа.']],
- 'Паллоф-пресс':[['Планка с касанием плеч','Если блок занят: 3×10 касаний на сторону.']],
- 'Подъёмы на носки стоя':[['В Смите или с гантелей на ступеньке','Главное — пятка ниже носка и пауза 2 секунды внизу.']],
- 'Сгибание голени сидя':[['Сгибание лёжа','Хуже по растяжению, но лучше, чем пропустить.']]};
-
 /* ============ 3. СОСТОЯНИЕ ============ */
-const KEY='train-v2';
+const KEY='train-v3';
 const nextMonday=()=>{const d=new Date();const s=(8-d.getDay())%7||7;d.setDate(d.getDate()+s);return d.toISOString().slice(0,10);};
 const store={get(){try{return JSON.parse(localStorage.getItem(KEY)||'{}');}catch(e){return {};}},
-             set(v){try{localStorage.setItem(KEY,JSON.stringify(v));}catch(e){}}};
-let S=Object.assign({start:nextMonday(),week:1,day:1,mode:'block',short:false,pace:3.5,goal:'recomp',body:[{d:'2026-06-11',w:66.9,f:26.2}],log:{},custom:[],daily:{},tab:'today'},store.get());
+             set(v){try{localStorage.setItem(KEY,JSON.stringify(v));return true;}catch(e){alert('Не удалось сохранить данные в браузере. Выгрузи JSON на вкладке «История», чтобы не потерять запись.');return false;}}};
+function loadState(){
+ const current=store.get();if(Object.keys(current).length)return current;
+ try{const old=JSON.parse(localStorage.getItem('train-v2')||'null');if(!old)return {};
+  return {body:old.body||[],daily:old.daily||{},goal:old.goal||'recomp',custom:(old.custom||[]).map(s=>({...s,k:s.k?'legacy:'+s.k:undefined})),legacyLog:old.log||{},legacyState:old};
+ }catch(e){return {};}
+}
+let S=Object.assign({start:nextMonday(),week:1,day:1,unit:'kg',pace:3.5,goal:'recomp',body:[{d:'2026-06-11',w:66.9,f:26.2}],choices:{},log:{},custom:[],daily:{},tab:'today'},loadState());
 const save=()=>store.set(S);
-
-/* ---- альтернатива: силовой режим базы (тяжело с первой недели) ---- */
-const STRENGTH={
- 'Присед ниже параллели':[
-  {s:4,r:'6',l:75,rir:3},{s:4,r:'5',l:80,rir:2},{s:5,r:'4',l:82.5,rir:2},{s:2,r:'6',l:62.5,rir:4},
-  {s:4,r:'5',l:82.5,rir:2},{s:4,r:'4',l:85,rir:1},{s:3,r:'3',l:87.5,rir:1},{s:2,r:'3 тест',l:90,rir:0}],
- 'Румынская тяга':[
-  {s:4,r:'6',l:87.5,rir:3},{s:4,r:'5',l:92.5,rir:2},{s:4,r:'4',l:97.5,rir:2},{s:2,r:'6',l:75,rir:4},
-  {s:4,r:'5',l:95,rir:2},{s:4,r:'4',l:100,rir:1},{s:3,r:'3',l:107.5,rir:1},{s:2,r:'5 тест',l:100,rir:0}],
- 'Хип-траст':[
-  {s:4,r:'6',l:180,rir:3},{s:4,r:'5',l:190,rir:2},{s:4,r:'5',l:200,rir:2},{s:2,r:'6',l:150,rir:4},
-  {s:4,r:'5',l:200,rir:2},{s:4,r:'4',l:210,rir:1},{s:3,r:'3',l:220,rir:1},{s:3,r:'8',l:180,rir:2}]};
-const skip=ex=>S.short&&ex.p===2;
-const mins=(day,wi,all)=>Math.round(day.ex.reduce((a,ex)=>{if(!all&&skip(ex))return a;if(all===2&&ex.p===2)return a;const p=sch(ex,wi);return a+p.s*(ex.ss?S.pace*0.55:S.pace);},15));
-const sch=(ex,wi)=>(S.mode==='strength'&&STRENGTH[ex.name])?STRENGTH[ex.name][wi]:ex.w[wi];
-const BACKOFF='В силовом режиме после тяжёлых подходов сделай один сбрасывающий: 60% от рабочего веса на 10–12 повторов. Он вернёт объём, который ушёл из-за низких повторов.';
+const exName=ex=>S.choices?.[ex.id]||ex.name;
+const newSet=()=>({done:false,segments:[{w:undefined,unit:S.unit||'kg',r:undefined}]});
+const rowsFor=(log,i,ex)=>{log.sets=log.sets||{};if(!Array.isArray(log.sets[i]))log.sets[i]=Array.from({length:ex.s},newSet);while(log.sets[i].length<ex.s)log.sets[i].push(newSet());return log.sets[i];};
+const segKg=seg=>{const w=Number(String(seg?.w).replace(',','.'));if(!Number.isFinite(w))return undefined;return (seg.unit||'kg')==='lb'?w*0.45359237:w;};
+const roundKg=v=>v==null?undefined:Math.round(v*100)/100;
+const segmentText=seg=>{const w=seg.w==null?'—':seg.w;return `${w} ${seg.unit||'kg'}${seg.r==null?'':` × ${seg.r}`}`;};
 
 /* ============ 4. МАТЕМАТИКА ============ */
 const e1rm=(w,r)=>(!w||!r||r>8)?null:Math.round(w*(1+r/30)*10)/10;
@@ -607,7 +563,8 @@ const CANON=[
  ['Подъёмы на носки',/на носки/i],['Бицепс',/бицепс/i],['Трицепс',/трицепс/i],
  ['Наклоны',/наклоны/i],['Сведения',/сведени|бабочк/i]
 ];
-const canon=n=>{for(const[c,re]of CANON)if(re.test(n))return c;return n;};
+const CURRENT_NAMES=new Set(DAYS.flatMap(d=>d.ex.flatMap(ex=>ex.options||[ex.name])));
+const canon=n=>{if(CURRENT_NAMES.has(n))return n;for(const[c,re]of CANON)if(re.test(n))return c;return n;};
 const sessions=()=>[...HISTORY,...S.custom].sort((a,b)=>a.d<b.d?-1:1);
 const fmtD=s=>{const[y,m,d]=s.split('-');return d+'.'+m;};
 let curMode='wt';
@@ -616,9 +573,10 @@ const series=(name,mode)=>{mode=mode||curMode;const out=[];
   s.e.forEach(([n,sets])=>{ if(canon(n)!==name)return;
    sets.forEach(([w,r])=>{
     if(/Отжимания|Фрогги|планка/i.test(name)){ if(r&&(!best||r>best)){best=r;lbl=r+' повт.';} }
+    else if(/гравитрон/i.test(name)){if(w!=null&&r>=2&&(best===null||w<best)){best=w;lbl=w+' кг помощи × '+r;}}
     else if(mode==='wt'){ if(w&&r&&r>=2&&(!best||w>best)){best=w;lbl=w+' × '+r;} }
     else{const v=e1rm(w,r); if(v&&(!best||v>best)){best=v;lbl=w+' × '+r;}}});});
-  if(best)out.push({d:s.d,v:best,l:lbl});});
+  if(best!==null)out.push({d:s.d,v:best,l:lbl});});
  return out;};
 const tonnage=s=>{let t=0;s.e.forEach(([n,sets])=>{if(/противовес|гравитрон/i.test(n))return;sets.forEach(([w,r])=>{if(w&&r)t+=w*r;});});return Math.round(t);};
 
@@ -663,162 +621,84 @@ const daysSince=d=>Math.round((Date.now()-new Date(d))/864e5);
 function renderNav(){
  document.getElementById('nav').innerHTML=TABS.map(([k,t])=>`<button data-tab="${k}" class="${S.tab===k?'on':''}">${t}</button>`).join('');
  const ls=lastS();
- document.getElementById('hdsub').innerHTML=`нед. ${S.week} · день ${S.day}<span class="only-wide"> · последняя ${fmtD(ls.d)} (${daysSince(ls.d)} дн. назад)</span>`;
-}
-
-/* ---- какой день логичнее следующим, судя по последней тренировке ---- */
-function suggestDay(){
- const ls=lastS(), names=ls.e.map(x=>x[0]).join(' ');
- const knee=/присед|выпад|болгар|разгибание голени/i.test(names);
- const hip=/румын|мост|хип-траст|отжиман|махи ног/i.test(names);
- let d=1,why='';
- if(knee&&!hip){d=2;why='там был присед, а таза и жима не было';}
- else if(hip&&!knee){d=1;why='там была задняя цепь, а приседа не было';}
- else if(knee&&hip){d=2;why='там было и то и другое, но хип-траста и румынки не было';}
- else {d=1;why='тяжёлых движений на ноги там не было';}
- return {d,why,ls};
+ document.getElementById('hdsub').innerHTML=`круг ${S.week} · ${DAYS[S.day-1].label}<span class="only-wide"> · последняя ${fmtD(ls.d)} (${daysSince(ls.d)} дн. назад)</span>`;
 }
 
 /* --- ТРЕНИРОВКА --- */
+const currentKey=()=>`w${S.week}d${S.day}`;
+const currentLog=()=>S.log[currentKey()]||(S.log[currentKey()]={sets:{},names:{}});
+const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function counts(){
+ const log=currentLog();let total=0,done=0;
+ DAYS[S.day-1].ex.forEach((ex,i)=>{const rows=rowsFor(log,i,ex);total+=rows.length;done+=rows.filter(r=>r.done).length;});
+ return {total,done};
+}
+function setMarkup(row,i,j){
+ const attrs=`data-i="${i}" data-j="${j}"`;
+ return `<div class="set-block"><div class="row set-title"><b>Подход ${j+1}</b>
+ <button type="button" class="chk ${row.done?'on':''}" ${attrs} aria-label="Подход ${j+1} выполнен" aria-pressed="${row.done}">${row.done?'✓':''}</button>
+ ${j>=DAYS[S.day-1].ex[i].s?`<button class="text-btn" data-delset ${attrs}>Удалить</button>`:''}</div>
+ ${row.segments.map((seg,k)=>`<div class="segment"><span class="segment-arrow">${k?'→':''}</span>
+ <input aria-label="Вес, подход ${j+1}, часть ${k+1}" type="text" inputmode="decimal" data-f="w" ${attrs} data-k="${k}" value="${safe(seg.w)}" placeholder="Вес" autocomplete="off">
+ <select data-f="unit" ${attrs} data-k="${k}" aria-label="Единица веса"><option value="kg" ${seg.unit!=='lb'?'selected':''}>кг</option><option value="lb" ${seg.unit==='lb'?'selected':''}>lb</option></select>
+ <input aria-label="Повторы, подход ${j+1}, часть ${k+1}" type="text" inputmode="numeric" data-f="r" ${attrs} data-k="${k}" value="${safe(seg.r)}" placeholder="Повт." autocomplete="off">
+ ${k?`<button class="text-btn" data-delseg ${attrs} data-k="${k}" aria-label="Удалить часть ${k+1}">×</button>`:'<span></span>'}</div>`).join('')}
+ <button class="text-btn" data-addseg ${attrs}>+ Сменить вес в этом подходе</button></div>`;
+}
 function renderToday(){
- const day=DAYS[S.day-1],wi=S.week-1,key=`w${S.week}d${S.day}`,log=S.log[key]||{sets:{}};
- let tot=0,dn=0;
- day.ex.forEach((ex,i)=>{if(skip(ex))return;tot+=sch(ex,wi).s;(log.sets[i]||[]).forEach(r=>{if(r&&r.done)dn++;});});
- const pct=tot?Math.round(dn/tot*100):0;
- let h=`<div class="card ${pct===100?'dark':'green'}">
-  <div class="row"><span class="pill ${pct===100?'green':'dark'}">Неделя ${S.week} · ${WK_TYPE[wi]}</span>
-   <span class="pill ${pct===100?'green':'dark'}" style="margin-left:auto">День ${S.day}</span></div>
-  <div class="row" style="align-items:flex-end;margin:18px 0 14px">
-   <div class="num">${pct}<i>%</i></div>
-   <div style="margin-left:auto;text-align:right;font-size:13px;font-weight:700;opacity:.65">${dn} из ${tot}<br>подходов</div></div>
-  <div class="bar"><i style="width:${pct}%"></i></div>
-  <p style="margin:14px 0 0;font-size:13.5px;font-weight:600;opacity:.75">${WK_NOTE[wi]}</p></div>
-  <div class="card tight"><div class="row" style="flex-wrap:wrap">
-   <select id="selw">${WK_TYPE.map((t,i)=>`<option value="${i+1}" ${S.week===i+1?'selected':''}>Неделя ${i+1} — ${t}</option>`).join('')}</select>
-   <select id="seld">${DAYS.map(d=>`<option value="${d.n}" ${S.day===d.n?'selected':''}>День ${d.n}</option>`).join('')}</select></div>
-   ${(()=>{const sg=suggestDay();return sg.d===S.day?'':`<div class="why" style="margin-top:12px;padding:12px">
-     <b>Совет по последней тренировке.</b> ${fmtD(sg.ls.d)} ты делала: ${sg.ls.e.map(x=>x[0].toLowerCase()).join(', ')}. Логичнее взять <b>день ${sg.d}</b> — ${sg.why}.
-     <div style="margin-top:8px"><button class="btn" data-go="${sg.d}" style="font-size:12.5px;padding:7px 13px">Перейти на день ${sg.d}</button></div></div>`;})()}
-   <div class="row" style="gap:6px;margin-top:10px">
-    <button class="btn ${S.mode==='block'?'primary':''}" data-md="block" style="font-size:13px;padding:8px 14px">База: блок</button>
-    <button class="btn ${S.mode==='strength'?'primary':''}" data-md="strength" style="font-size:13px;padding:8px 14px">База: силовой</button></div>
-   ${S.mode==='strength'?`<p style="font-size:12.5px;color:#6E727A;margin:10px 0 0;font-weight:600">${BACKOFF}</p>`:''}
-   ${renderCompare()}
-   <div class="day ${day.color}" style="margin:14px 0 0"><div class="no">${day.n}</div>
-    <div style="flex:1"><h3 style="font-size:16px">${day.name}</h3>
-    <div style="font-size:12.5px;color:#6E727A;font-weight:600;margin-top:3px">${day.cond}</div></div></div>
-   <div class="row" style="gap:6px;margin-top:12px">
-    <button class="btn ${!S.short?'primary':''}" data-sh="0" style="font-size:13px;padding:8px 14px">Полная · ≈${mins(day,wi,1)} мин</button>
-    <button class="btn ${S.short?'primary':''}" data-sh="1" style="font-size:13px;padding:8px 14px">Короткая · ≈${mins(day,wi,2)} мин</button>
-    <select id="selp" style="margin-left:auto;font-size:12.5px;padding:8px 30px 8px 12px">
-     <option value="2.5" ${S.pace==2.5?'selected':''}>темп быстрый</option>
-     <option value="3.5" ${S.pace==3.5?'selected':''}>темп обычный</option>
-     <option value="5" ${S.pace==5?'selected':''}>темп мой</option></select></div>
-   <div class="why" style="margin-top:12px;padding:12px"><b>Правило остановки.</b> Потемнело в глазах, зашумело в ушах, затошнило, прошиб холодный пот — подход не дотягиваешь, садишься, ноги выше. Тренировка на этом закончена, и это <b>не</b> провал и не пропуск: в трекере такой день считается выполненным. Повторяется на небольших весах — это к врачу, а не к программе.<br><br>Что обычно за этим стоит и что с этим делать: не задерживай дыхание — выдох на подъёме, каждый повтор; не вставай резко после подхода лёжа или в наклоне; ешь за 1,5–2 часа до зала; между подходами на приседе и болгарских сиди все 2 минуты, а не 40 секунд.</div>
-   <p style="font-size:12.5px;color:#6E727A;margin:10px 0 0;font-weight:600">Оценка = 15 мин разминки + ${S.pace} мин на подход вместе с отдыхом. Если выходит дольше — дело в отдыхе между подходами, а не в количестве упражнений: жми галочку сразу после подхода, снизу пойдёт таймер.</p></div>`;
+ const day=DAYS[S.day-1],log=currentLog(),{total,done}=counts(),pct=Math.round(done/total*100);
+ let h=`<div class="card green"><div class="row"><span class="pill dark">Круг ${S.week}</span><span class="pill dark" style="margin-left:auto">Тренировка ${day.label}</span></div>
+ <div class="row" style="margin:18px 0"><div class="num">${pct}<i>%</i></div><span id="done-count" style="margin-left:auto">${done} из ${total} подходов</span></div><div class="bar"><i style="width:${pct}%"></i></div></div>
+ <div class="card"><div class="row" style="flex-wrap:wrap"><select id="seld" aria-label="Тренировка">${DAYS.map(d=>`<option value="${d.n}" ${S.day===d.n?'selected':''}>Тренировка ${d.label}</option>`).join('')}</select>
+ <label>Новые веса: <select id="selunit" aria-label="Единица для новых подходов"><option value="kg" ${S.unit!=='lb'?'selected':''}>кг</option><option value="lb" ${S.unit==='lb'?'selected':''}>lb</option></select></label></div>
+ <h3 style="margin-top:16px">${day.name}</h3><p><small>Чередуй А → Б → В при своём графике. Обычно два занятия в неделю; после В начинается новый круг.</small></p>
+ <p><small>Можно вводить 27,5 или 27.5. «Сменить вес» добавляет часть внутри одного подхода: например, 40 × 8 → 35 × 4. Укажи повторы для каждого веса.</small></p></div>`;
  day.ex.forEach((ex,i)=>{
-  if(skip(ex))return;
-  const p=sch(ex,wi),rows=log.sets[i]||[];
-  const allDone=rows.length===p.s&&rows.every(r=>r&&r.done);
-  h+=`<div class="card ${allDone?'exdone':''}" data-ex="${i}">
-   <div class="exh"><div class="n"><div class="name">${ex.name}${ex.p===2?' <span class="pill" style="font-size:10px;padding:3px 8px;vertical-align:middle">доп</span>':''}</div><div class="cue">${ex.cue}</div></div>
-   <div class="tg"><span class="pill green">${p.s}×${p.r}${p.l?' · '+p.l+' кг':''}</span>
-   <div class="rir">запас ${p.rir}</div>
-   <a class="rb" href="${yt(ex.name)}" target="_blank" rel="noreferrer" title="Видео: как делать" style="margin-top:8px;text-decoration:none">▶</a></div></div>
-   ${ALT[ex.name]?`<details style="margin:-4px 0 12px"><summary style="cursor:pointer;list-style:none;font-size:12.5px;font-weight:700;color:#0FBF63">Замены · ${ALT[ex.name].length} ↓</summary>
-    ${ALT[ex.name].map(z=>`<div class="why" style="padding:11px;margin:8px 0"><a href="${yt(z[0])}" target="_blank" rel="noreferrer" style="color:var(--ink);font-weight:800;text-decoration:none;font-size:13.5px">${z[0]} ▶</a>
-     <div style="font-size:12.5px;color:#6E727A;margin-top:3px;font-weight:600">${z[1]}</div></div>`).join('')}</details>`:''}
-   <div class="sets">`;
-  for(let j=0;j<p.s;j++){const r=rows[j]||{};
-   h+=`<div class="set"><div class="idx">${j+1}</div>
-    <div class="fld"><input type="number" step="0.5" inputmode="decimal" data-f="w" data-i="${i}" data-j="${j}" value="${r.w??''}" placeholder="${p.l||'—'}"><span>кг</span></div>
-    <div class="fld"><input type="number" inputmode="numeric" data-f="r" data-i="${i}" data-j="${j}" value="${r.r??''}" placeholder="${parseInt(p.r)||p.r}"><span>повт</span></div>
-    <div class="chk ${r.done?'on':''}" data-i="${i}" data-j="${j}">${r.done?'✓':''}</div></div>`;}
-  h+=`</div></div>`;});
- h+=`<div class="card dark"><h3>График плавающий</h3>
-  <p style="font-size:13.5px;color:#8A8F98;font-weight:600">Дней недели нет. Чередуешь день 1 → день 2 → день 1, минимум сутки отдыха между ними. Неделя блока сдвигается после каждой пары «1 + 2», а не по календарю: сделала две тренировки за 5 дней — перешла на следующую неделю, растянула на 10 — тоже перешла. День 3 не обязателен и на счётчик недели не влияет.<br><br>Если перерыв вышел больше 10 дней — повтори прошлую неделю с теми же весами, не прыгай вперёд.</p></div>
-  <div class="card"><h3>Правило прогрессии</h3><p style="font-size:13.5px;color:#6E727A">Если сделала все подходы с указанным запасом и последний был лёгким — в следующий раз этого упражнения прибавь 2,5 кг (база) или 1 кг (гантели/дельты). Если провалила повторы в двух подходах подряд — оставь вес ещё на неделю.</p></div>`;
- return h;
+  const rows=rowsFor(log,i,ex),name=log.names?.[i]||exName(ex);
+  h+=`<div class="card ${rows.every(r=>r.done)?'exdone':''}" data-ex="${i}"><div class="exh"><div class="n"><div class="name">${safe(name)}</div><div class="cue">${ex.cue}</div></div>
+  <div class="tg"><span class="pill green">${ex.s} × ${ex.r}</span><div class="rir">запас 2–3 повтора</div></div></div>
+  <a class="text-btn" href="${yt(name)}" target="_blank" rel="noreferrer" style="display:inline-block;margin-bottom:8px">Найти видео упражнения ↗</a>
+  ${ex.options?`<label class="choice-label">Вариант упражнения<select class="exercise-choice" data-choice="${i}" aria-label="Вариант упражнения">${ex.options.map(n=>`<option ${n===name?'selected':''}>${safe(n)}</option>`).join('')}</select></label>`:''}
+  <div class="sets">${rows.map((r,j)=>setMarkup(r,i,j)).join('')}</div><button class="btn" data-addset data-i="${i}" style="margin-top:12px">+ Добавить подход</button></div>`;
+ });
+ return h+`<div class="card"><h3>Как увеличивать нагрузку</h3><p>Сначала прибавляй повторы в указанном диапазоне. Когда все обычные подходы получаются на верхней границе с запасом 2–3 повтора, увеличь вес на минимальный доступный шаг. Дополнительные подходы и смена веса — по необходимости.</p></div>`;
 }
-/* ---- наглядное сравнение режимов ---- */
-function renderCompare(){
- const names=Object.keys(STRENGTH);
- let t='';
- names.forEach(n=>{
-  const ex=DAYS.flatMap(d=>d.ex).find(e=>e.name===n);
-  const row=(arr,lbl,on)=>`<tr${on?' style="background:#EFFBF3"':''}><td class="ex" style="min-width:96px;font-weight:${on?800:600}">${lbl}${on?' ✓':''}</td>`+
-   arr.map((w,i)=>`<td${i===3||i===7?' class="dl"':''}>${w.s}×${w.r}<div style="font-size:10.5px;color:#9A9DA3;font-weight:700">${w.l}</div></td>`).join('')+'</tr>';
-  t+=`<div style="margin:14px 0 0"><div style="font-weight:800;font-size:14px;margin-bottom:6px">${n}</div>
-   <div class="scroll"><table style="font-size:12.5px">
-   <tr><th class="ex">режим</th>${[1,2,3,4,5,6,7,8].map(i=>`<th${i===4||i===8?' class="dl"':''}>${i}</th>`).join('')}</tr>
-   ${row(ex.w,'блок',S.mode==='block')}
-   ${row(STRENGTH[n],'силовой',S.mode==='strength')}
-   </table></div></div>`;});
- return `<details style="margin-top:12px"><summary style="cursor:pointer;list-style:none;font-size:13px;font-weight:800;color:#0FBF63">В чём разница ↓</summary>
-  <p style="font-size:13.5px;color:#6E727A;font-weight:600;margin:10px 0 0">Меняются только три упражнения — присед, румынка и хип-траст. Всё остальное в программе одинаковое.</p>
-  ${t}
-  <div class="why" style="margin-top:14px"><b>Блок:</b> начинаешь легко и много повторов, к 6–7 неделе выходишь на тяжёлое. Спина и колени устают меньше, первые недели будут казаться простыми — так и задумано.<br><br>
-  <b>Силовой:</b> тяжело с первой недели, повторов мало. Тренировка короче, ощущается «по-настоящему», но усталость от неё выше и объём меньше — его надо добирать сбрасывающим подходом.<br><br>
-  <b>Как выбрать:</b> если после первых двух недель блока кажется, что ты не тренируешься, а разминаешься — переключайся на силовой. Если после силовой тренировки день 1 идёт вяло и поясница не восстанавливается — возвращайся на блок.</div></details>`;
-}
-
 function fabUpdate(){
- const day=DAYS[S.day-1],wi=S.week-1,key=`w${S.week}d${S.day}`,log=S.log[key]||{sets:{}};
- let tot=0,done=0;
- day.ex.forEach((ex,i)=>{if(skip(ex))return;const p=sch(ex,wi);tot+=p.s;(log.sets[i]||[]).forEach(r=>{if(r&&r.done)done++;});});
- document.getElementById('fabbar').style.width=(tot?done/tot*100:0)+'%';
- if(!restT)document.getElementById('fabtxt').textContent=`${done}/${tot}`;
- const gc=document.querySelector('.card.green .num, .card.dark .num');
- if(gc&&S.tab==='today'){const pc=tot?Math.round(done/tot*100):0;gc.innerHTML=pc+'<i>%</i>';
-  const b=document.querySelector('.bar i');if(b)b.style.width=pc+'%';}
+ const {total,done}=counts(),pct=Math.round(done/total*100);
+ document.getElementById('fabbar').style.width=pct+'%';
+ if(!restT)document.getElementById('fabtxt').textContent=done+'/'+total;
+ if(S.tab==='today'){const num=document.querySelector('.num');if(num)num.innerHTML=pct+'<i>%</i>';const bar=document.querySelector('.bar i');if(bar)bar.style.width=pct+'%';const count=document.getElementById('done-count');if(count)count.textContent=done+' из '+total+' подходов';}
  document.getElementById('fab').classList.toggle('hide',S.tab!=='today');
 }
+const decimal=v=>typeof v==='number'?v:Number(String(v).trim().replace(',','.'));
+function validSegment(seg){return seg.w!=null&&String(seg.w).trim()!==''&&Number.isFinite(decimal(seg.w))&&decimal(seg.w)>=0&&Number.isInteger(decimal(seg.r))&&decimal(seg.r)>0;}
 function saveSession(){
- const day=DAYS[S.day-1],wi=S.week-1,key=`w${S.week}d${S.day}`,log=S.log[key]||{sets:{}};
- const e=[];
- day.ex.forEach((ex,i)=>{const p=sch(ex,wi),rows=log.sets[i]||[],sets=[];
-  rows.forEach(r=>{if(r&&r.done)sets.push([r.w??p.l??0,(r.r??(parseInt(p.r)||null))]);});
-  if(sets.length)e.push([ex.name,sets]);});
- if(!e.length){alert('Ни один подход не отмечен галочкой.');return;}
- const d=new Date().toISOString().slice(0,10);
- S.custom=S.custom.filter(s=>s.k!==key);
- S.custom.push({d,e,k:key,n:`Неделя ${S.week}, день ${S.day}`});
- if(S.day===1)S.day=2;
- else if(S.day===2){S.day=1;if(S.week<8)S.week++;}
- save();render();
- alert('Записано. Следующая: неделя '+S.week+', день '+S.day+'. Отдохни минимум сутки.');
+ const day=DAYS[S.day-1],key=currentKey(),log=currentLog(),e=[],detail=[];let invalid=false;
+ day.ex.forEach((ex,i)=>{
+  const rows=rowsFor(log,i,ex).filter(r=>r.done);
+  if(rows.some(row=>row.segments.some(seg=>!validSegment(seg))))invalid=true;
+  if(!rows.length)return;
+  const name=log.names?.[i]||exName(ex),savedRows=rows.map(row=>row.segments.map(seg=>({w:decimal(seg.w),r:decimal(seg.r),unit:seg.unit||'kg'})));
+  detail.push([name,savedRows]);e.push([name,savedRows.flatMap(row=>row.map(seg=>[roundKg(segKg(seg)),seg.r]))]);
+ });
+ if(invalid){alert('В отмеченных подходах заполни вес и целое число повторов для всех частей. Для собственного веса укажи 0.');return;}
+ if(!e.length){alert('Отметь хотя бы один выполненный подход.');return;}
+ const before=JSON.parse(JSON.stringify(S));
+ const d=new Date().toLocaleDateString('sv-SE');S.custom=S.custom.filter(s=>s.k!==key);
+ S.custom.push({d,e,detail,k:key,program:PROGRAM_VERSION,n:`Круг ${S.week}, тренировка ${day.label}`});
+ S.day=S.day%3+1;if(S.day===1)S.week++;if(!save()){S=before;return;}clearInterval(restT);restT=null;render();
+ alert('Записано. Следующая тренировка — '+DAYS[S.day-1].label+'.');
 }
-
 /* --- ПРОГРАММА --- */
 function renderProgram(){
- let h=`<div class="card dark"><div class="row"><div style="flex:1"><h3>Видео с упражнениями</h3>
-  <p style="font-size:13px;color:#8A8F98;margin:6px 0 0;font-weight:600">Канал автора твоей исходной программы. А значок ▶ у каждого упражнения — здесь в таблице и на вкладке «Тренировка» — открывает подборку разборов именно этого движения.</p></div>
-  <a class="btn primary" href="${VIDEO_HOME}" target="_blank" rel="noreferrer" style="text-decoration:none;flex:0 0 auto">Открыть</a></div></div>
-  <div class="card"><h3>Блок на 8 недель · 2 тренировки + 1 по желанию</h3>
-  <p style="font-size:13.5px;color:#6E727A">Дней недели нет: чередуешь день 1 и день 2, минимум сутки отдыха. Неделя блока сдвигается после каждой пары «1+2», а не по календарю. Разминка 8–10 мин, отдых между подходами 1,5–2 мин на базе и 60–90 с на изоляции. Веса — от твоих реальных максимумов.</p>
-  <div class="grid g4" style="margin-top:12px">
-   <div class="stat"><div class="v">${S.mode==='strength'?'4–6':'8→3'}</div><div class="k">повторов на базе</div></div>
-   <div class="stat"><div class="v">16</div><div class="k">тренировок в блоке</div></div>
-   <div class="stat"><div class="v">13–16</div><div class="k">подходов на ягодицы</div></div>
-   <div class="stat"><div class="v">4 и 8</div><div class="k">недели разгрузки</div></div>
-  </div></div>`;
- h+=`<div class="card"><h3>Недели</h3><div class="grid g4" style="margin-top:10px">`+
-  WK_TYPE.map((t,i)=>`<div class="stat wk ${S.week===i+1?'now':''}"><div class="v" style="font-size:17px">Нед. ${i+1}</div><div class="k">${t}</div></div>`).join('')+`</div>
-  <p style="margin-top:12px;font-size:13px;color:#6E727A">${WK_TYPE.map((t,i)=>`<b style="color:var(--ink)">${i+1}.</b> ${WK_NOTE[i]}`).join('<br>')}</p></div>`;
- DAYS.forEach(day=>{
-  h+=`<div class="card"><div class="day ${day.color}"><div class="no">${day.n}</div>
-   <div style="flex:1"><h3 style="font-size:16px">${day.name}</h3>
-   <div style="font-size:12.5px;color:#6E727A;font-weight:600;margin-top:3px">${day.cond}</div></div></div><div class="scroll"><table><tr><th class="ex">Упражнение</th>${WK_TYPE.map((t,i)=>`<th${i===3||i===7?' class="dl"':''}>${i+1}</th>`).join('')}</tr>`;
-  day.ex.forEach(ex=>{
-   h+=`<tr><td class="ex"><a href="${yt(ex.name)}" target="_blank" rel="noreferrer" style="color:var(--ink);text-decoration:none">${ex.name} <span style="color:#0FBF63">▶</span></a>
-    <div style="font-size:11px;color:#9A9DA3;font-weight:400">${ex.m}${ex.p===2?' · доп':''}</div></td>`+
-    ex.w.map((_,i)=>sch(ex,i)).map((p,i)=>`<td${i===3||i===7?' class="dl"':''}>${p.s}×${p.r}${p.l?'<br><small>'+p.l+'</small>':''}</td>`).join('')+`</tr>`;});
-  h+=`</table></div><p style="font-size:12.5px;color:#6E727A;margin-top:10px">Формат: подходы × повторы, снизу — вес в кг.</p></div>`;});
- return h;
+ return `<div class="card green"><h3>Три тренировки: А → Б → В</h3><p>Ягодицы, задняя поверхность бедра и икры — с упражнениями на верх тела. При двух занятиях в неделю продолжай чередование: А–Б, затем В–А, затем Б–В.</p></div>
+ ${DAYS.map(day=>`<div class="card"><div class="day ${day.color}"><div class="no">${day.label}</div><h3>${day.name}</h3></div>
+ ${day.ex.map(ex=>`<div class="program-ex"><div><b>${ex.name}</b><div class="cue">${ex.m}${ex.options?' · варианты: '+ex.options.slice(1).join(', '):''}</div></div><span class="pill">${ex.s} × ${ex.r}</span></div>`).join('')}</div>`).join('')}
+ <div class="card"><h3>Вес подбирается по самочувствию и технике</h3><p>Рабочие подходы — с запасом 2–3 повтора. Когда достигнешь верхней границы повторов во всех обычных подходах, прибавь минимальный шаг веса. Веса разных тренажёров учитывай отдельно.</p><p>В карточке упражнения можно добавить подход, выбрать кг или lb и записать смену веса внутри одного подхода.</p></div>`;
 }
 
 /* --- ПРОГРЕСС --- */
-const TRACK=['Присед','Румынская тяга','Тяга верхнего блока','Отжимания полные','Хип-траст / мостик','Болгарские выпады','Выпады одной ногой','Сгибание голени','Отжимания с колен','Подъёмы на носки','Боковые отведения (плечи)','Тяга гантели'];
+const TRACK=[...new Set([...CURRENT_NAMES,'Присед','Отжимания полные','Хип-траст / мостик','Болгарские выпады','Сгибание голени','Тяга гантели'])];
 let curMetric=TRACK[0];
 function renderProgress(){
  const ss=sessions(),ls=ss[ss.length-1];
@@ -827,8 +707,9 @@ function renderProgress(){
  const mdata=Object.keys(months).sort().map(k=>({k:mn[+k.slice(5)-1],v:months[k],hi:k===new Date().toISOString().slice(0,7)}));
  const tot=ss.reduce((a,s)=>a+tonnage(s),0);
  const wks=Math.max(1,(Date.now()-new Date(ss[0].d))/6048e5);
- const p=series(curMetric),first=p[0],last=p[p.length-1],best=p.length?p.reduce((a,b)=>b.v>a.v?b:a):null;
- const dlt=first&&last?Math.round((last.v-first.v)/first.v*100):0;
+ const assisted=/гравитрон/i.test(curMetric);
+ const p=series(curMetric),first=p[0],last=p[p.length-1],best=p.length?p.reduce((a,b)=>(assisted?b.v<a.v:b.v>a.v)?b:a):null;
+ const dlt=first&&last&&first.v?Math.round((last.v-first.v)/first.v*100)*(assisted?-1:1):0;
  const unit=/Отжимания|Фрогги/i.test(curMetric)?'повт.':'кг';
  let h=`<div class="grid g4">
   <div class="stat"><div class="v">${ss.length}</div><div class="k">тренировок</div><div class="d flat">с ${fmtD(ss[0].d)}</div></div>
@@ -840,17 +721,17 @@ function renderProgress(){
   <select id="selm">${TRACK.map(t=>`<option ${t===curMetric?'selected':''}>${t}</option>`).join('')}</select></div>
   <div class="row" style="gap:6px;margin-bottom:12px">
    <button class="btn ${curMode==='wt'?'primary':''}" data-mode="wt" style="font-size:13px;padding:8px 14px">Рабочий вес</button>
-   <button class="btn ${curMode==='e1rm'?'primary':''}" data-mode="e1rm" style="font-size:13px;padding:8px 14px">Оценка 1ПМ</button></div>
+   <button ${assisted?'disabled':''} class="btn ${curMode==='e1rm'?'primary':''}" data-mode="e1rm" style="font-size:13px;padding:8px 14px">Оценка 1ПМ</button></div>
   ${lineChart(p,unit)}
   <div class="grid g3" style="margin-top:12px">
    <div class="stat"><div class="v">${last?last.v:'—'}</div><div class="k">сейчас, ${unit}</div><div class="d flat">${last?last.l:''}</div></div>
    <div class="stat"><div class="v">${best?best.v:'—'}</div><div class="k">рекорд</div><div class="d flat">${best?fmtD(best.d):''}</div></div>
    <div class="stat"><div class="v ${dlt>0?'up':dlt<0?'down':''}">${dlt>0?'+':''}${dlt}%</div><div class="k">за период</div><div class="d flat">${p.length} точек</div></div>
   </div>
-  <p style="font-size:12.5px;color:#6E727A;margin-top:10px">${unit!=='кг'?'Лучший подход за тренировку.':curMode==='wt'?'Максимальный вес, поднятый в этот день минимум на 2 повтора. Самая честная метрика: ничего не пересчитывается.':'Формула Эпли и только по подходам до 8 повторов — на 10+ повторах такие формулы систематически завышают оценку, и сравнивать по ним подход на 12 повторов с подходом на 4 нельзя.'}</p></div>`;
+  <p style="font-size:12.5px;color:#6E727A;margin-top:10px">${assisted?'Показан минимальный противовес при двух и более повторах. Меньше помощи — сложнее; оценка 1ПМ здесь не применяется.':unit!=='кг'?'Лучший подход за тренировку.':curMode==='wt'?'Максимальный вес, поднятый в этот день минимум на 2 повтора. Записи в lb пересчитываются в кг; сравнивай один и тот же тренажёр и технику.':'Формула Эпли и только по подходам до 8 повторов — на 10+ повторах такие формулы систематически завышают оценку, и сравнивать по ним подход на 12 повторов с подходом на 4 нельзя.'}</p></div>`;
  const rows=TRACK.map(t=>{const q=series(t);if(q.length<2)return null;
-  const bb=q.reduce((a,c)=>c.v>a.v?c:a);
-  return{t,f:q[0],b:bb,l:q[q.length-1],x:/Хип-траст/.test(t),
+  const bb=q.reduce((a,c)=>(/гравитрон/i.test(t)?c.v<a.v:c.v>a.v)?c:a);
+  return{t,f:q[0],b:bb,l:q[q.length-1],x:/Хип-траст|гравитрон/i.test(t),
    d:Math.round((q[q.length-1].v-q[0].v)/q[0].v*100)};}).filter(Boolean)
   .sort((a,b)=>(a.x?-999:a.d)<(b.x?-999:b.d)?1:-1);
  h+=`<div class="card"><h3>Что выросло, а что стоит</h3><div class="scroll"><table style="margin-top:8px">
@@ -859,7 +740,7 @@ function renderProgress(){
    <td>${r.b.l}<div style="font-size:10.5px;color:#9A9DA3">${fmtD(r.b.d)}</div></td>
    <td>${r.l.l}<div style="font-size:10.5px;color:#9A9DA3">${fmtD(r.l.d)}</div></td>
    <td class="${r.x?'flat':r.d>5?'up':r.d<-5?'down':'flat'}">${r.x?'—':(r.d>0?'+':'')+r.d+'%'}</td></tr>`).join('')+
-  `</table></div><p style="font-size:12.5px;color:#6E727A;margin-top:10px">Δ — изменение выбранной метрики (${curMode==='wt'?'рабочего веса':'оценки 1ПМ'}) между первой и последней записью. У хип-траста Δ не считается: менялись снаряды (мостик со штангой 190 кг и тренажёр 65 кг — разные шкалы). В выпадах вес местами указан на одну ногу, местами суммарно.</p></div>`;
+  `</table></div><p style="font-size:12.5px;color:#6E727A;margin-top:10px">Δ — изменение выбранной метрики (${curMode==='wt'?'рабочего веса':'оценки 1ПМ'}) между первой и последней записью. У гравитрона Δ не считается: это вес помощи, а не поднятый вес. У хип-траста Δ не считается: менялись снаряды (мостик со штангой 190 кг и тренажёр 65 кг — разные шкалы). В выпадах вес местами указан на одну ногу, местами суммарно.</p></div>`;
  h+=`<div class="card"><h3>Регулярность по месяцам</h3>${barChart(mdata,'тренировок')}
   <p style="font-size:13px;color:#6E727A">Май — 8, дальше спад до 3–5. Главный ограничитель роста сейчас не программа, а количество тренировок: при 1 занятии в неделю на мышцу веса держатся, но не растут.</p></div>`;
  return h;
@@ -877,14 +758,24 @@ function renderHistory(){
    ${s.k?'<span class="pill dark">по плану</span>':''}<span class="meta">${s.d.slice(0,4)}</span></summary>
    <div class="body">`;
   s.e.forEach(([n,sets])=>{
-   const txt=sets.map(([w,r])=>`${w===null?'?':w===0?'св.вес':w}${r?' × '+r:' × ?'}`).join(', ');
-   h+=`<div class="line"><b>${n}</b><span>${txt}</span></div>`;});
-  if(s.n)h+=`<p style="font-size:12.5px;color:#6E727A;margin-top:8px">${s.n}</p>`;
+   const detailed=s.detail?.find(x=>x[0]===n);
+   const txt=detailed?detailed[1].map((row,i)=>`${i+1}: `+row.map(segmentText).join(' → ')).join('; '):sets.map(([w,r])=>`${w===null?'?':w===0?'св.вес':w}${r?' × '+r:' × ?'}`).join(', ');
+   h+=`<div class="line"><b>${safe(n)}</b><span>${safe(txt)}</span></div>`;});
+  if(s.n)h+=`<p style="font-size:12.5px;color:#6E727A;margin-top:8px">${safe(s.n)}</p>`;
   h+=`</div></details>`;});
- h+=`</div><div class="card row" style="gap:8px;flex-wrap:wrap">
+ h+=`</div>${renderLegacyDrafts()}<div class="card row" style="gap:8px;flex-wrap:wrap">
   <button class="btn ghost" id="exp">Выгрузить JSON</button>
   <button class="btn ghost" id="clr">Сбросить мои записи</button></div>`;
  return h;
+}
+
+function renderLegacyDrafts(){
+ const pending=Object.entries(S.legacyLog||{}).filter(([key,log])=>!S.custom.some(s=>s.k==='legacy:'+key)&&Object.values(log.sets||{}).some(rows=>rows.some(row=>row&&(row.done||row.w!=null||row.r!=null))));
+ if(!pending.length)return '';
+ return `<div class="card"><h3>Черновики старой программы</h3><p><small>Эти записи сохранены отдельно: упражнения в новой программе идут в другом порядке.</small></p>${pending.map(([key,log])=>{
+  const match=key.match(/^w(\d+)d(\d+)$/),day=match?+match[2]:0;
+  return `<details class="hist"><summary>${match?'Неделя '+match[1]+' · день '+day:safe(key)}</summary>${Object.entries(log.sets||{}).map(([i,rows])=>`<p><b>${safe(LEGACY_NAMES[day-1]?.[i]||'Упражнение '+(+i+1))}</b><br>${rows.filter(Boolean).map((row,j)=>`${j+1}: ${safe(row.w??'—')} кг × ${safe(row.r??'—')}${row.done?' ✓':''}`).join('; ')}</p>`).join('')}</details>`;
+ }).join('')}</div>`;
 }
 
 /* --- ТЕЛО: замеры и рекомпозиция --- */
@@ -1061,259 +952,34 @@ const SRC=[
  ['Int J Strength & Conditioning','Точность формул расчёта 1ПМ до и после тренировочного цикла','https://journal.iusca.org/index.php/Journal/article/view/327']
 ];
 function renderWhy(){
- return `
- <div class="card dark"><h3>Поправка к прошлой версии</h3>
-  <p style="font-size:14px;color:#C8CCD2;font-weight:500">Я писал, что румынка стоит на месте. Это была ошибка счёта: я сравнивал подход 80×12 (и сама эта цифра была моей догадкой из записи «40+80») с подходом 100×4 через формулу Эпли. Формулы расчёта 1ПМ теряют точность выше ~10 повторов и систематически завышают оценку на длинных подходах — сравнивать по ним подход на 12 повторов с подходом на 4 нельзя. По честной метрике — максимальный поднятый вес — румынка выросла с 75 кг (01.02) до 100 кг (07.08), и рекорд поставлен в последнюю тренировку.<br><br>
-  В приложении на вкладке «Прогресс» теперь по умолчанию стоит рабочий вес, а расчётный 1ПМ считается только по подходам до 8 повторов.</p></div>
-
- <div class="card"><h3>Что показал дневник · 43 тренировки, 01.02 — 11.08</h3>
-  <ul class="bullet" style="font-size:14px">
-   <li><b>Прогресс есть везде, где есть история.</b> По максимальному рабочему весу: присед 55 → 85 кг, румынка 75 → 100 кг, хип-траст 120 → 190 кг, тяга верхнего блока 40 → 60 кг, тяга гантели 22,5 → 27,5 кг. За полгода это много.</li>
-   <li><b>Почти весь прирост пришёлся на февраль–май.</b> Присед: рекорд 82,5×6 (28.05), после этого 80×4–6 и 85×2. Хип-траст: 190×7 (30.04), в августе 180×8. Тяга верхнего блока: 60×6 (12.07) и с тех пор не повторялась. Пик и по силе, и по количеству тренировок — это май.</li>
-   <li><b>Регулярность:</b> февраль 6, март 8, апрель 8, май 8, июнь 5, июль 5, август 3. Итого 1,6 тренировки в неделю. Когда тренировок 8 в месяц — веса растут, когда 3–5 — держатся.</li>
-   <li><b>Отжимания не откатились</b> — просто в дневнике это два разных упражнения. Разделил: с колен рекорд 15 повторов, полные — 8. В программе прогрессия идёт по полным, с колен разрешены как добивка.</li>
-   <li><b>Волнообразная схема повторов — это не ошибка.</b> В старой программе повторы меняются по неделям намеренно, и это рабочая схема. Чего в ней не было — прописанного веса и правила прибавки, поэтому по дневнику нельзя отследить ни одной цепочки «тот же вес → больше повторов → +2,5 кг». Это единственное, что я к ней добавил.</li>
-   <li><b>Гиперэкстензия перед румынкой</b> (21.05) закончилась записью «поясница сдохла», и румынка в тот день просела до 60 кг против 90 кг девятью днями позже.</li>
-   <li><b>Кондиция обрывала подходы:</b> «дыхалка тупо сдохла» (04.07), «башка закружилась» (08.02), «очень душно было» (25.05).</li>
-  </ul></div>
-
- <div class="card"><h3>Форма ягодиц и «ямка»</h3>
-  <div class="why"><b>Сначала честно про то, чего наука не знает.</b> «Ямки» (hip dips) — не медицинский термин, исследований по ним нет вообще. Из анатомии известно: провал приходится на зону между гребнем подвздошной кости и большим вертелом бедра, и его глубина задана расстоянием между этими костными точками и распределением жира. Это не тренируется.</div>
-  <div class="why"><b>Что тренируется — объём мышц вокруг.</b> Средняя ягодичная крепится к большому вертелу и лежит выше провала, большая ягодичная даёт объём сзади и снизу.</div>
-  <div class="why"><b>Причину по дневнику установить нельзя — и это важно сказать прямо.</b> Сначала я решил, что верхнюю боковую часть налило от отведений бедра. Проверил по записям: отведение бедра у тебя было только в марте (кроссовер, 50–75 кг) и с тех пор ни разу. «Боковые отведения» по 2–5 кг — это плечи, а не бедро. Значит наполненность пришла от общей работы: мостик стоял почти в каждой тренировке, плюс приседы и румынка — верхняя часть большой ягодичной и средняя ягодичная нагружаются и в них. Достоверно сказать, что именно дало такой контур, из логов не выводится.</div>
-  <div class="why"><b>Что поменял.</b> Раз причина неизвестна, работаю от цели: наращивать нижнюю и заднюю часть большой ягодичной, а не верхнюю боковую. Хип-траст поднят на второе место дня 2 и получил 4 подхода. Добавлены махи ногой назад. Болгарские переведены в вариант с наклоном корпуса — это переносит нагрузку с квадрицепса на большую ягодичную в растянутой позиции. Присед идёт ниже параллели: именно глубина в сравнениях растила большую ягодичную сильнее. Отведение бедра осталось в минимальном объёме и только в необязательном дне.</div>
-  <div class="why"><b>Приседания при этом не выбрасываем.</b> В прямом сравнении (Plotkin, 2023) 9 недель хип-траста и 9 недель приседа дали <b>одинаковый прирост ягодичных</b>, хотя ЭМГ-активность в хип-трасте была выше. Активность мышцы на датчике и её рост — разные вещи, и одно упражнение «на форму» не существует.</div>
-  <div class="why"><b>Почему за полгода не видно изменений формы.</b> Сила выросла сильно, а объём мышцы — это другой процесс: он идёт от суммарного количества подходов, близости к отказу и еды. При 1,6 тренировки в неделю с редкой тяжёлой работой на ягодицы объём почти не набирается. В исследованиях 8–12 недель регулярной работы дают единицы процентов объёма мышцы — визуально это мало, и заметная разница в форме — это месяцы. Плюс белок: прибавки заканчиваются около <b>1,6 г на кг веса в день</b> (Morton, 2018), и в дефиците калорий мышца растёт плохо.</div>
- </div>
-
- <div class="card"><h3>«Форму мышцы можно изменить» — что тут правда</h3>
-  <div class="why"><b>Сам эффект реален, и «форма не меняется, меняется только размер» — слишком сильное утверждение.</b> Мышца не обязана расти равномерно по всей длине: разные упражнения и разная амплитуда дают разный прирост в разных её участках. Это называется региональной гипертрофией, и она измерена.</div>
-  <div class="why"><b>Что именно намерил Bloomquist, 2013.</b> Площадь сечения передней поверхности бедра мерили в шести точках от таза к колену. У глубокой группы прирост 4–7 % <b>во всех шести</b>, разницы по длине бедра нет. У группы полуприседа значимый прирост только в двух точках из шести: у таза около +3–4 %, в середине примерно 0, ближе к колену около −2 %. То есть градиент «растёт сверху, не растёт снизу» в работе действительно есть.</div>
-  <div class="why"><b>Где пересказ уходит дальше данных.</b> «Возле колена мышца уменьшилась» — это −2 % средних по девяти людям за 12 недель; такая величина лежит в пределах погрешности измерения, и как отдельный доказанный эффект «усыхания» её подавать нельзя, значимым там был прирост в двух верхних точках, а не убыль в нижней. И второе: «амплитуда важнее веса» исследование не проверяло — обе группы работали тяжело, сравнивали амплитуду с амплитудой, а не амплитуду с весом.</div>
-  <div class="why"><b>Главное: это бедро, а не ягодица.</b> В этой работе ягодичные не измерялись вообще. Перенос «раз квадрицепс растёт по-разному в разных участках, значит и ягодицу можно лепить по зонам» — это аналогия, а не результат.</div>
-  <div class="why"><b>Ягодицу на зоны проверяли отдельно.</b> Plotkin, 2023: хип-траст против приседа, 9 недель, МРТ, большая ягодичная померена в трёх участках — верхнем, среднем и нижнем. Прирост вышел похожим; оценки по участкам слегка склонялись в пользу хип-траста, но с большим разбросом, то есть уверенного «это упражнение растит низ, а это верх» не получилось. При этом ЭМГ-активность в хип-трасте была выше во всех участках — и роста это не предсказало.</div>
-  <div class="why"><b>Что по обзорам всё же есть.</b> Верхняя часть большой ягодичной действительно сильнее включается в движениях с отведением и наружной ротацией бедра. Но это данные по активности, а не по росту, и обзоры прямо пишут: активность не следует считать предсказателем региональной гипертрофии. Избирательно нагрузить <b>нижнюю</b> часть доказательств нет вообще — разгибание бедра грузит обе примерно одинаково.</div>
-  <div class="why"><b>И про ямки отдельно.</b> Глубина провала задана расстоянием между гребнем подвздошной кости и большим вертелом и распределением жира. Несколько процентов объёма мышцы за 10–12 недель эту геометрию не меняют, и ни в одном из перечисленных исследований hip dips не измеряли.</div>
-  <div class="why"><b>Что из этого уже стоит в программе.</b> Глубокий присед — есть. Хип-траст и румынка — есть. Отведение бедра с наклоном (та самая работа на верх ягодичной через отведение) — есть в третьем дне. То есть спор идёт не о наборе упражнений, а о том, насколько уверенно можно обещать заданную форму. Обещать нельзя, набирать объём — можно.</div>
- </div>
-
- <div class="card"><h3>«Квадратные ягодицы от отведений» — второй совет, обратный первому</h3>
-  <div class="why"><b>В чём тезис.</b> Квадратная форма получается, когда много изоляции на среднюю ягодичную (отведения, резинка, махи в сторону) и мало работы на большую; средняя лежит сверху-сбоку и даёт ширину, а не выпуклость. Рекомендация — убрать отведения на полгода и отдать 80 % работы большой ягодичной.</div>
-  <div class="why"><b>Что здесь верно.</b> Большая ягодичная действительно кратно крупнее средней и отвечает за задний объём — это анатомия, спорить не с чем. И общий вывод «основную нагрузку давать большой ягодичной» правильный: разгибание бедра под весом растит её лучше, чем лёгкие отведения.</div>
-  <div class="why"><b>Что не проверено.</b> Что перекос в отведения делает форму квадратной — ни одного исследования. Чтобы средняя ягодичная заметно изменила силуэт, её надо нарастить на величину, которой лёгкие махи с резинкой не дают: в тренировочных работах рост мышцы за 8–12 недель измеряется единицами процентов. А ширина таза, расстояние от гребня подвздошной кости до большого вертела и распределение жира — это кость и жир, они и задают «квадрат».</div>
-  <div class="why"><b>Два совета, которые противоречат друг другу.</b> Один автор говорит: отведения нужны, они растят верх ягодицы и дают округлость сверху. Второй: отведения убрать на полгода, они делают квадрат. Ссылаются оба на анатомию и на своих клиентов, исследований по форме нет ни у того, ни у другого. Это хороший повод не выбирать между ними, а смотреть, что вообще измерено: измерено, что большая ягодичная растёт от тяжёлого разгибания бедра.</div>
-  <div class="why"><b>Практически для тебя ничего не меняется.</b> Отведение бедра в программе — 2 подхода по 15 с весом 3–5 кг, в необязательном третьем дне. Это около 2 % работы за неделю, а не перекос. Всё остальное — присед, хип-траст, румынка, болгарские, махи назад — это и есть большая ягодичная. Убирать нечего: программа и так устроена так, как советует видео.</div>
- </div>
-
- <div class="card"><h3>Почему 2 дня и плавающий график</h3>
-  <div class="why"><b>План должен совпадать с жизнью.</b> Факт: 1,6 тренировки в неделю за полгода. План на 3 дня ты не выполняла ни одного месяца, а невыполненный план создаёт ощущение провала на ровном месте.</div>
-  <div class="why"><b>Частота почти не решает.</b> В крупнейшей на сегодня мета-регрессии (Pelland, 2025) при равном недельном объёме частота практически не влияет на гипертрофию — значение имеет суммарное количество подходов за неделю. Поэтому те же 10–16 подходов на группу спокойно раскладываются на две тренировки вместо трёх, просто дни длиннее (55–60 мин).</div>
-  <div class="why"><b>Дней недели нет.</b> Чередуешь день 1 → день 2 → день 1, минимум сутки отдыха. Неделя блока сдвигается после каждой пары «1+2», а не по календарю. Уложилась в 5 дней — отлично; растянула на 10 — тоже засчитано. Перерыв больше 10 дней — повтори прошлую неделю с теми же весами.</div>
-  <div class="why"><b>Отдых между подходами можно сократить.</b> По мета-анализу (Longo, 2024) прирост даёт отдых длиннее 60 секунд, а после ~90 секунд заметной разницы уже нет. То есть 1,5–2 минуты на базе достаточно — это экономит 10–15 минут на тренировке.</div>
-  <div class="why"><b>Насколько близко к отказу.</b> Robinson (2024): гипертрофия тем больше, чем ближе подход к отказу, а вот на силу близость к отказу почти не влияет. Отсюда правило в таблице: база — запас 2–3 повтора (силы это не отнимет), изоляция и всё, что делается ради формы — запас 0–1.</div>
- </div>
-
- <div class="card"><h3>Гакк, Смит, жим ногами — что снимает нагрузку со спины</h3>
-  <div class="why"><b>Да, снимает — и это измеряли.</b> В сравнениях вариантов приседа активность разгибателей спины в гакк-приседе оказалась ниже, чем во всех остальных, а сжимающая нагрузка на поясницу — заметно меньше. Нагрузка уходит с корпуса на ноги, прежде всего на квадрицепс. У Смита активность разгибателей тоже ниже, чем у свободной штанги, но выше, чем у гакка.</div>
-  <div class="why"><b>Почему так по механике.</b> В приседе со штангой верх спины работает статически всю подход: держит гриф на месте и не даёт грудному отделу свалиться вперёд. В гакке корпус лежит на спинке — держать нечего, мышцам спины остаётся только не отрываться от опоры. В жиме ногами на плечах вообще ничего не лежит, поэтому если у тебя болит именно от грифа на трапециях — это самый чистый вариант.</div>
-  <div class="why"><b>Порядок по нагрузке на верх спины:</b> свободный присед → Смит → гакк → жим ногами. Твои 150×9 в жиме ногами говорят, что там ты сильная, так что это не потеря в нагрузке на ноги.</div>
-  <div class="why"><b>Чем платишь.</b> Гакк и жим ногами держат корпус вертикально по фиксированной траектории — это больше квадрицепс и меньше ягодица, чем глубокий свободный присед. Для твоей главной цели это минус, но он закрывается тем, что ягодицы в программе и так грузятся хип-трастом, румынкой и болгарскими. Так что менять присед на гакк можно спокойно, особенно в недели, когда спина ноет.</div>
-  <div class="why"><b>Одна оговорка по технике.</b> В гакке следи, чтобы внизу таз не подворачивался и поясница не отрывалась от спинки — именно в этот момент нагрузка возвращается на поясницу. Глубина до момента, пока спина лежит на опоре.</div>
- </div>
-
- <div class="card"><h3>Штанга, гакк или маятник — что говорят исследования</h3>
-  <div class="why"><b>Главный вопрос — теряешь ли ты рост, уходя со штанги. Нет.</b> Мета-анализ Haugen (2023): 13 исследований, 1016 человек, свободные веса против тренажёров. По приросту мышцы разницы нет вообще — размер эффекта −0,055 при нулевой разнородности между исследованиями. Это один из самых однозначных результатов в силовой науке. Разница есть только в силе, и она специфична: кто тренировался со штангой, больше прибавил в тесте со штангой, кто на тренажёре — в тесте на тренажёре. То есть отказ от штанги стоит тебе штангового результата в приседе и ничего не стоит по мышце.</div>
-  <div class="why"><b>Гакк.</b> По ЭМГ активность разгибателей спины и полусухожильной в гакк-приседе значимо ниже, чем во всех остальных вариантах приседа — это самый щадящий для поясницы и для верха спины вариант, потому что на плечах не лежит ничего. Обратная сторона: ягодица и задняя поверхность включаются меньше, чем в приседе со штангой, спинка убирает наклон корпуса, за счёт которого они и работают. Частично компенсируется высокой постановкой стоп на платформе — она увеличивает сгибание в тазу.</div>
-  <div class="why"><b>Маятник — данных нет.</b> Я искал: отдельных исследований по маятниковому приседу не существует, всё, что находится, — тексты производителей тренажёров. Механически он выглядит выгоднее гакка для твоей цели: корпус вертикальнее, таз сгибается сильнее, глубина набирается легче. Но это рассуждение, а не результат, и выдавать его за доказанное я не буду.</div>
-  <div class="why"><b>Что это значит для тебя.</b> Исследования говорят: любой из трёх вариантов вырастит мышцу одинаково. Значит выбор идёт не по «эффективности», а по тому, что мешает именно тебе. Из дневника видно два таких пункта: штанга на трапециях — ровно то, что раздражает верх спины, и вставание из глубокого приседа — худший сценарий по давлению, а эпизодов дурноты уже пять. По обоим тренажёр выигрывает. Третий пункт — глубина: смысл приседа в программе именно в ней, так что выбирать стоит тот тренажёр, в котором садишься ниже без отрыва пяток.</div>
-  <div class="why"><b>Одно предупреждение.</b> Тренажёр не отменяет дурноту. Задержка дыхания под весом даёт скачок давления и в гакке, и в маятнике, и в жиме ногами. Правило то же: выдох на подъёме, вставать из тренажёра не рывком.</div>
-  <div class="why"><b>И про ягодицы отдельно.</b> Гакк из трёх вариантов грузит ягодицу меньше всех. Но в программе присед и не главный на ягодицу — главные это мостик, румынка и болгарские, и они никуда не делись. Присед здесь за квадрицепс и за глубокое сгибание в тазу.</div>
- </div>
-
- <div class="card"><h3>Зачем глубина в приседе, если ты не тяжелоатлет</h3>
-  <div class="why"><b>Глубина нужна не ради приседа, а ради ягодиц.</b> Прямых сравнений два, и говорят они о разном. <b>Kubo, 2019:</b> 17 мужчин, 10 недель, полный присед против половинного, объёмы мышц по МРТ — большая ягодичная и приводящие выросли значимо больше при полном, квадрицепс одинаково, бицепс бедра не вырос ни в одной группе. <b>Bloomquist, 2013:</b> 17 нетренированных мужчин, 12 недель, присед до 120° в колене против 60° — больше выросли передняя поверхность бедра, сила разгибания колена (+6 ± 2 % и +8 ± 1 % в разных углах) и прыжок (+15 ± 3 %). Про ягодицы в этой работе нет ничего: их не измеряли, там мерили бедро и надколенниковое сухожилие.</div>
-  <div class="why"><b>Что из этого следует для тебя.</b> Ягодица — это Kubo: ниже половины амплитуды она получает больше. Квадрицепс: против четверти приседа глубина выигрывает (Bloomquist), против половины — уже нет (Kubo). То есть смысл опускаться ниже параллели именно в ягодице, а не «чтобы правильно».</div>
-  <div class="why"><b>Поправка к прошлой версии этой карточки.</b> Здесь было написано, что больший рост ягодичной и приводящих дали «Bloomquist и Kubo». Это неверно: цифры по ягодице есть только у Kubo, а у Bloomquist взята схема сравнения глубин. Два исследования были склеены в одно утверждение — исправил, ссылки добавил в источники.</div>
-  <div class="why"><b>Насколько этому верить.</b> В обоих по 17 мужчин, группы 8 против 9, 10–12 недель. Маленькие выборки, не женщины, не после перерыва. Направление совпадает в обоих и согласуется с биомеханикой — в глубине бедро сгибается сильнее и ягодица работает в растянутой позиции, — но на тебя это переносится по аналогии, а не напрямую.</div>
-  <div class="why"><b>«Ниже параллели» ≠ «в пол».</b> Тяжелоатлетический присед до касания бёдрами голеней тебе не нужен. Ориентир простой: таз чуть ниже линии колена. В твоём дневнике 04.07 уже есть запись «60 глубокий» — значит это делается.</div>
-  <div class="why"><b>Глубина не опаснее, чем полуприсед.</b> Обзоры сходятся в обратном: длинная амплитуда не повышает риск для колена, а вот частичные приседы провоцируют брать заметно больший вес, и суммарная нагрузка на позвоночник и колено при этом выше. Проблема глубины — не риск, а техника.</div>
-  <div class="why"><b>И вот тут главное: техника — решаемый вопрос, а не условие входа.</b> В приложении у приседа есть кнопка «Замены» — четыре варианта, которые дают ту же глубину без баланса и без штанги на спине: присед в Смите или гакк (траектория фиксирована), жим ногами (по твоим 150×9 это твоё сильное упражнение, и амплитуда там большая при нуле техники), присед с блином под пятки (глубина чаще всего не идёт из-за голеностопа, а не из-за навыка) и присед на ящик (глубина одинаковая каждый раз). Любой из них — не «облегчённая версия», а полноценная замена. Плюс болгарские с наклоном в том же дне уже дают глубокое сгибание в бедре при маленьком весе.</div>
-  <div class="why"><b>Про «башка закружилась» (08.02).</b> Это чаще всего задержка дыхания под нагрузкой. Выдох делай на подъёме, не терпи весь подход на вдохе. Если повторяется на небольших весах — стоит проверить давление у врача, это не тренировочный вопрос.</div>
- </div>
-
- <div class="card"><h3>Икры</h3>
-  <div class="why"><b>Стоя, а не сидя.</b> В исследовании, где одна нога человека 12 недель работала стоя, а вторая сидя (Kinoshita, 2023), икроножная выросла на <b>9–12%</b> при прямом колене и практически не изменилась при согнутом. Камбаловидная выросла одинаково. Поэтому оба дня — стоя; сидя имеет смысл только как добавка на камбаловидную, если останется время.</div>
-  <div class="why"><b>Растянутая позиция.</b> Частичные повторы в нижней, растянутой половине амплитуды дали больший рост икроножной, чем полная амплитуда (Kassiano, 2023). Отсюда второй день: только нижняя половина, пятка ниже площадки, пауза 2 секунды внизу.</div>
-  <div class="why"><b>Ожидания.</b> Икры отзываются медленнее других мышц и сильно зависят от длины сухожилия — то есть от генетики. Протокол в исследовании — 5 подходов, 2 раза в неделю, 12 недель. Столько же и закладываем; в дневнике икр не было вообще, так что веса в таблице стартовые, поправь на первой неделе.</div>
- </div>
-
- <div class="card"><h3>Рекомпозиция: почему не выходило</h3>
-  <div class="why"><b>Рекомпозиция требует двух сигналов одновременно</b> — дефицита и стимула к росту мышцы. По обзору Barakat (2020) она надёжнее всего идёт у новичков, у тех, кто возвращается после перерыва, и у людей с заметным процентом жира — то есть ты подходишь по всем трём пунктам. Но обязательных условий два: <b>прогрессирующие силовые</b> и <b>высокий белок</b>.</div>
-  <div class="why"><b>Что было у тебя.</b> За 7 месяцев 46 тренировок — 1,6 в неделю, с разбросом от 8 в месяц до 1. Веса и упражнения менялись почти каждый раз, поэтому прогрессия отследилась только в тяге. Сигнал «строй мышцу» был слабый и рваный. В такой ситуации дефицит даёт минус жир и минус мышцы — вес падает, форма не меняется. Ровно то, что ты и описала.</div>
-  <div class="why"><b>Что критично поменять — по порядку важности.</b><br>
-   1. <b>Две тренировки в неделю без пропусков.</b> Не три, не «как получится» — ровно 8 в месяц. Это первое условие, без него остальное не работает.<br>
-   2. <b>Белок 135 г каждый день</b>, включая выходные. Это 2,7 г на кг твоей безжировой массы — верхняя граница рекомендаций для дефицита, и она здесь намеренная: белок защищает мышцы, когда калорий мало.<br>
-   3. <b>Дефицит мягкий: 1800, а не 1700.</b> При рекомпозиции резать сильно вредно — чем глубже дефицит, тем хуже растёт мышца. Темп −0,3…0,4 кг в неделю.<br>
-   4. <b>Прогрессия в приложении.</b> Один и тот же набор упражнений, вес растёт по правилу. Именно это отличает «ходить в зал» от «строить мышцу».<br>
-   5. <b>Сон 7–9 часов и 8–10 тысяч шагов.</b> Шаги дают половину дефицита, не трогая тарелку.</div>
-  <div class="why"><b>Как понять, что идёт.</b> Вес — плохой индикатор: при рекомпозиции он может стоять месяцами, пока состав меняется. Смотри на три вещи: <b>талия</b> (уходит быстрее веса), <b>веса в зале</b> (растут — значит мышца не теряется) и <b>InBody раз в 6–8 недель</b>. Вкладка «Тело» собирает всё это в один график.</div>
-  <div class="why"><b>Сроки.</b> Реалистично за 12–16 недель: минус 2–3 кг жира, плюс 0,5–1 кг мышц, талия минус 3–5 см при почти том же весе на весах. Это выглядит скучно в цифрах и заметно в зеркале. Быстрее не бывает — и если кажется, что бывает, то это вода.</div>
- </div>
-
- <div class="card"><h3>Почему в дне именно эти упражнения</h3>
-  <div class="why"><b>Главный принцип: при двух тренировках каждая — это половина тела, а не «ноги» и «верх».</b> Если сделать день ног и день верха, каждая мышца получит нагрузку раз в неделю. Поэтому в обоих днях есть одно большое движение на ноги, одна тяга, икры и плечи — и всё главное тренируется дважды.</div>
-  <div class="why"><b>Как поделены ноги.</b> День 1 — движения через колено: присед и болгарские. День 2 — через таз: хип-траст и румынка. Это даёт тренировать ноги дважды в неделю так, чтобы вторая тренировка не шла по тем же уставшим мышцам: после приседа болят квадрицепс и ягодица, после румынки — задняя поверхность и поясница.</div>
-  <div class="scroll"><table style="margin-top:6px">
-   <tr><th class="ex">День 1</th><th class="ex">Зачем именно оно</th></tr>
-   <tr><td class="ex">Присед</td><td class="ex">Самое тяжёлое — первым, пока свежая. Квадрицепс и ягодица под большим весом, глубина даёт растянутую позицию.</td></tr>
-   <tr><td class="ex">Тяга верхнего блока</td><td class="ex">Единственная вертикальная тяга в неделе — широчайшие. Стоит второй, чтобы ноги и дыхание отдохнули после приседа.</td></tr>
-   <tr><td class="ex">Болгарские с наклоном</td><td class="ex">Вторая порция ног без штанги на спине: по одной ноге, наклон корпуса переносит нагрузку на большую ягодичную.</td></tr>
-   <tr><td class="ex">Тяга к лицу</td><td class="ex">Верх спины и наружная ротация. Заодно пауза для ног перед икрами.</td></tr>
-   <tr><td class="ex">Икры стоя</td><td class="ex">Твой запрос. Прямое колено — работает икроножная. Раз в неделю, последний подход в растянутой половине.</td></tr>
-   <tr><td class="ex">Паллоф-пресс</td><td class="ex">Кор, который был в названии дня, но выпал при сокращении. Вернулся.</td></tr>
-  </table></div>
-  <div class="why"><b>Порядок внутри дня:</b> тяжёлое перед лёгким, многосуставное перед односуставным, важное перед второстепенным. Всё, что стоит последним, делается на усталости и растёт хуже — поэтому отжимания в дне 2 стоят первыми, а не как раньше в конце. <b>Но с одной поправкой, которая стоила прерванной тренировки:</b> два тяжёлых упражнения на ноги подряд ставить нельзя, даже если оба «важные». Присед и болгарские разведены тягой верхнего блока.</div>
-  <div class="why"><b>Чего в дне 1 нет и почему.</b> Нет румынки и хип-траста — задняя цепь работает в дне 2, иначе поясница не успеет восстановиться. Нет кора — он в ежедневной рутине и в третьем дне. Нет горизонтальной тяги — она в дне 2, чтобы спина получала два разных вектора за неделю.</div>
-  <div class="why"><b>И одна дыра, которую нашёл, отвечая на этот вопрос.</b> Когда я резал с девяти упражнений до шести, из дня 2 выпала тяга гантели — и горизонтальной тяги в программе не осталось вообще. Для среднего отдела спины, который у тебя и ноет, это главное движение, и ты его сама регулярно делаешь (39–45 кг). Вернул в день 2 вместо Y-подъёмов: Y остались в ежедневной рутине дома, а тяга под нормальным весом полезнее.</div>
- </div>
-
- <div class="card"><h3>Чередование низ-верх и приоритет ягодиц</h3>
-  <div class="why"><b>Как обычно строят день.</b> При двух тренировках в неделю каждая должна быть на всё тело, а внутри дня упражнения чередуют: тяжёлое на ноги — что-то на верх — снова ноги. Смысл двойной. Первое: пока работает спина или грудь, ноги и дыхание восстанавливаются 5–7 минут, и следующий тяжёлый подход делается не на остатках. Второе: не копится сердечно-сосудистая нагрузка, из-за которой к середине тренировки становится дурно. Второе для тебя важнее всего остального.</div>
-  <div class="why"><b>Что было не так.</b> В дне 2 подряд шли мостик, румынка и икры — три упражнения на низ без единой паузы, и весь верх был свален в конец. Именно на этом блоке 23.09 затошнило. В дне 1 подряд шли болгарские и икры. То есть чередования не было ни в одном дне.</div>
-  <div class="why"><b>Стало.</b> День 1: присед — тяга верхнего блока — болгарские — тяга к лицу — икры — паллоф. День 2: мостик — отжимания — румынка — горизонтальная тяга — сгибание голени — отведения. Ни одной пары «ноги подряд». Количество упражнений то же, время то же.</div>
-  <div class="why"><b>Приоритет ягодиц — это про порядок, а не только про количество.</b> Что стоит первым, делается с максимальным весом и свежей головой, и по нему идёт прогресс. Раньше день 2 открывался отжиманиями, а мостик — главное упражнение на ягодицы во всей программе — шёл вторым. Теперь мостик первый. Отжимания от этого не теряют: мостик грузит таз и грудь не трогает вообще.</div>
-  <div class="why"><b>Сколько теперь на что.</b> Ягодицы 12 подходов в неделю (присед, болгарские, мостик, румынка) плюс махи в третьем дне — это больше, чем на любую другую группу, и так и задумано. Спина 9 (вертикаль 3, горизонталь 3, тяга к лицу 3). Грудь 5. Бицепс бедра 6. Икры 3, плечи 3, кор 3 — вместо прежних 6, 6 и 0.</div>
- </div>
-
- <div class="card"><h3>Присед и болгарские подряд — моя ошибка</h3>
-  <div class="why"><b>Что случилось.</b> В дне 1 болгарские выпады стояли сразу после приседа. Ты не смогла продолжить тренировку, стало плохо, ушла домой. Это не «не втянулась» — это плохо составленный день.</div>
-  <div class="why"><b>Почему именно эта пара валит с ног.</b> Присед и болгарские — два самых требовательных упражнения по площади работающих мышц и по пульсу, а болгарские вдобавок делаются по одной ноге, то есть подход длится вдвое дольше обычного: два подхода по 8 повторов на каждую ногу — это почти минута непрерывной работы под весом. Плюс в обоих есть натуживание. Идут подряд — пульс со второго упражнения уже не успевает падать между подходами, дыхание сбивается, давление после вставания из глубокого приседа проваливается. Дальше — темнеет в глазах, тошнит, холодный пот. Это предобморочное состояние, а не слабость характера.</div>
-  <div class="why"><b>Что изменил.</b> Между ними теперь тяга верхнего блока: пока работает спина, ноги и дыхание восстанавливаются 5–7 минут. Порядок дня 1 — присед, тяга, болгарские, икры, суперсет на плечи. Ничего не выкинуто, веса не тронуты, поменялся только порядок.</div>
-  <div class="why"><b>И правило остановки</b> — теперь оно висит прямо на вкладке «Тренировка», а не спрятано в обосновании. Потемнело в глазах или затошнило — тренировка закончена, день считается выполненным. В дневнике у тебя такое уже трижды: «башка закружилась» (08.02), «очень душно было» (25.05), «дыхалка тупо сдохла» (04.07). Четвёртый раз — это уже не совпадение и не жара в зале, это повод дойти до врача и проверить давление и железо. Я не врач, диагноз поставить не могу, но закономерность в записях видна.</div>
- </div>
-
- <div class="card"><h3>Сколько упражнений и сколько это по времени</h3>
-  <div class="why"><b>Было девять — стало шесть.</b> Девять получилось потому, что к базе добавились икры, кор, верх спины и плечи — по упражнению на запрос. Это перебор, убрал: боковую планку, вторые икры, Y-подъёмы, вторые боковые отведения и обратные скручивания. Сгибание голени и паллоф-пресс сначала тоже убрал, но это была ошибка — вернул при перебалансировке. Махи ногой назад переехали в необязательный третий день. Осталось <b>6 упражнений: 18 подходов в первом дне и 20 во втором</b>, причём последние два идут суперсетом — это пять подходов к снарядам, а не шесть.</div>
-  <div class="why"><b>Где на самом деле уходит время.</b> 18 подходов — это примерно 15 минут самой работы. Всё остальное — отдых и паузы. При отдыхе 1,5–2 минуты выходит около часа. Если тренировка растягивается на три — значит между подходами проходит по 5–8 минут, и режь надо не упражнения, а паузы.</div>
-  <div class="why"><b>Поэтому в приложении теперь таймер.</b> Отмечаешь галочкой подход — снизу сразу идёт обратный отсчёт: 2 минуты на базе, 1,5 на изоляции, минута на суперсете. Ноль — следующий подход. Тапни по таймеру, чтобы сбросить. Это единственная вещь, которая реально сокращает тренировку.</div>
-  <div class="why"><b>И оценка времени теперь по твоему темпу.</b> Справа от кнопок «Полная / Короткая» — выбор темпа. «Обычный» считает 3,5 минуты на подход, «мой» — 5 минут. На своём темпе видно честно: полный день выходит 92 минуты, короткий — 75. Это и есть повод включить таймер.</div>
-  <div class="why"><b>Короткая версия — 4 упражнения.</b> Выпадает суперсет с плечами и верхом спины. Остаются присед, тяга верхнего блока, болгарские и тяга к лицу в первом дне; мостик, отжимания, румынка и горизонтальная тяга во втором. Чередование низ-верх сохраняется и в короткой версии.</div>
- </div>
-
- <div class="card"><h3>Плечи: что было и что стало</h3>
-  <div class="why"><b>Что произошло.</b> «Боковые отведения» в твоём дневнике — это махи гантелями на плечи, я так и понял вначале. Потом, разбирая вопрос про форму ягодиц, переклассифицировал их в отведение бедра — и работа на среднюю дельту исчезла из программы совсем. Ошибка была моя, вернул под твоим названием.</div>
-  <div class="why"><b>Что говорят записи.</b> Боковые отведения — 10 тренировок, вес 2–5 кг, обычно 3 подхода по 8–15, часто с дропом на последнем. Отведения вбок в наклоне — 4 тренировки по 3–4 кг, это задняя дельта. Отведение бедра — только март, кроссовер 50–75 кг. Разброс весов и не оставляет вариантов: 4 кг это плечо, 75 кг — бедро.</div>
-  <div class="why"><b>Что стало.</b> День 1 — боковые отведения гантелями, 3×12–15, суперсетом с тягой к лицу, последний подход с дропом. День 2 — то же движение, но корпус наклонён вперёд примерно на 15°, руки чуть за линию тела: так дельта нагружена и в нижней части амплитуды. Суперсетом с Y-подъёмами. Трос убрал — раз не работает, значит не работает.</div>
-  <div class="why"><b>Веса.</b> Взял по твоим: 3–6 кг с прогрессией по неделям. Итого 6 подходов в неделю на среднюю дельту и 6 на заднюю.</div>
- </div>
-
- <div class="card"><h3>Два режима базы: блок и силовой</h3>
-  <div class="why"><b>Что стоит по умолчанию.</b> Блочная схема: недели 1–3 — накопление (присед 3×8, румынка 3×10), недели 5–7 — интенсификация (присед 4×5 и 3×4, румынка 4×6 и 3×5), 8-я — тест. Присед по 10 повторов не идёт нигде: 8 → 7 → 6 → 5 → 4 → 3.</div>
-  <div class="why"><b>Честно про доказательность самой идеи блока.</b> Периодизация в мета-анализах даёт преимущество над непериодизированной программой, но <b>небольшое</b> (размер эффекта около 0,43 по максимальной силе). При этом лучше всего в сравнениях выглядит <b>волнообразная</b> модель — та самая, что была в твоей старой программе, — а не линейная и не блочная. То есть блок здесь — не «доказано лучшее», а конкретное решение под ситуацию.</div>
-  <div class="why"><b>Под какую ситуацию.</b> Ты возвращаешься после паузы, тренируешься 1,6 раза в неделю и меняешь глубину приседа. Заходить сразу на 85% после перерыва и с новой техникой — способ либо застрять, либо получить травму. Первые три недели дают накатать глубину на управляемом весе и набрать объём, который потом конвертируется в силу.</div>
-  <div class="why"><b>Но твоё возражение сильное.</b> При двух тренировках в неделю тяжёлых подходов на базу мало, а последние личные рекорды (85×2, 100×4) поставлены именно в тяжёлом диапазоне — там ты уверенно себя чувствуешь. Логика «база тяжёлая, объём в подсобке» рабочая: приседать и тянуть на 4–6, а ростовой объём набирать болгарскими, хип-трастом и махами, где вес безопаснее.</div>
-  <div class="why"><b>Поэтому — переключатель.</b> На вкладке «Тренировка» две кнопки: <b>«База: блок»</b> и <b>«База: силовой»</b>. В силовом режиме присед, румынка и хип-траст идут по 3–6 повторов с первой недели (присед 4×6 → 4×5 → 5×4 → разгрузка → 4×5 → 4×4 → 3×3 → тест; румынка 4×6 с 85 кг и до 3×3 со 107,5). Вся остальная программа не меняется. Переключается в любой момент, но не чаще раза в 2–3 недели — иначе не поймёшь, что сработало.</div>
-  <div class="why"><b>Одна поправка к силовому режиму.</b> Низкие повторы забирают объём, а объём — это то, из-за чего растёт форма. Компенсируй сбрасывающим подходом: после тяжёлых сделай один на 10–12 повторов с 60% рабочего веса. Времени почти не занимает, а недельный объём возвращает.</div>
- </div>
-
- <div class="card"><h3>Почему где-то 5 повторов, а где-то 20</h3>
-  <div class="why"><b>Для роста мышцы диапазон почти не важен.</b> Мета-анализы (Schoenfeld, 2017; Lopez, 2021) показывают сопоставимую гипертрофию в диапазоне примерно от 5 до 30 повторов, если подход доводится достаточно близко к отказу. А вот для <b>силы</b> вес важен: тут тяжёлые подходы выигрывают. Отсюда и разделение.</div>
-  <div class="why"><b>База — 4–10 повторов.</b> Присед, румынка, хип-траст, тяги. От них нужна и сила тоже, и они же самые выгодные по времени: за один подход грузится много мышц сразу.</div>
-  <div class="why"><b>Изоляция — 10–15.</b> Здесь вес ограничен не мышцей, а суставом и техникой. Тяжёлая тяга к лицу или отведение бедра превращается в рывок корпусом: целевая мышца перестаёт быть тем, что упирается. Лёгкий вес и больше повторов — единственный способ довести именно её близко к отказу.</div>
-  <div class="why"><b>15–20 там, где нужна выносливость.</b> Тяга к лицу, Y-подъёмы, отведения. Верх спины болит от многочасовой статики, а не от нагрузки — ему нужна способность долго держать, а не разово вытянуть тяжёлое.</div>
-  <div class="why"><b>Фрогги 20–30 — потому что вес добавить некуда.</b> Своим весом единственный способ подойти к отказу — повторы.</div>
-  <div class="why"><b>Важная ловушка лёгкого веса.</b> Lasevicius показал: на лёгких весах отказ (или почти отказ) обязателен, иначе подход пустой; на тяжёлых можно оставить 2–3 повтора в запасе и ничего не потерять. Поэтому в таблице у изоляции запас 0–1, а у базы 2–3. Подход на 15 повторов, где последние два лёгкие, не делает ничего.</div>
-  <div class="why"><b>И для сравнения:</b> в старой программе присед шёл 3×15 и 3×12, жопомахи 3×15, гиперэкстензия 3×20, отведения 3×20. Здесь база доходит до 4–6 повторов. Повторов стало не больше, а меньше — просто они перераспределены: тяжёлое к тяжёлому, лёгкое к лёгкому.</div>
-  <div class="why"><b>Если диапазон всё равно длинный —</b> бери его нижнюю границу и добавь вес. Правило двойной прогрессии это разрешает: важно не число, а то, чтобы последние 1–2 повтора были реально тяжёлыми.</div>
- </div>
-
- <div class="card"><h3>Остальные принципы</h3>
-  <div class="why"><b>Объём.</b> Pelland (2025): больше подходов — больше роста, но с убывающей отдачей, и для силы отдача убывает быстрее, чем для гипертрофии. В блоке: ягодицы 13–16 подходов в неделю, квадрицепс 10–12, спина 10–12, плечи 12 (6 средняя дельта + 6 задняя), икры 7–8, грудь 8, кор 8.</div>
-  <div class="why"><b>Растянутая позиция вообще.</b> Работа в удлинённом положении мышцы даёт не меньше, а чаще больше роста, чем в укороченном (Wolf, 2025). Отсюда: глубокий присед, болгарские с наклоном, румынка до середины голени, сгибание голени сидя, тяга с полным распрямлением рук.</div>
-  <div class="why"><b>Двойная прогрессия.</b> Сначала растут повторы внутри диапазона, потом вес: +2,5 кг на базе, +1 кг на гантелях. Это то единственное, чего не хватало старой программе.</div>
-  <div class="why"><b>Разгрузка на 4-й и 8-й неделе.</b> −40% объёма и −25% веса. Считается не по календарю, а по выполненным парам тренировок.</div>
- </div>
-
- <div class="card"><h3>Что поменялось против старой таблицы</h3>
-  <div class="scroll"><table style="font-size:13px">
-   <tr><th class="ex">Было</th><th class="ex">Стало</th><th class="ex">Зачем</th></tr>
-   <tr><td class="ex">3 дня в неделю</td><td class="ex">2 обязательных + 1 по желанию</td><td class="ex">совпасть с реальными 1,6 в неделю</td></tr>
-   <tr><td class="ex">Веса не прописаны</td><td class="ex">Вес в каждой ячейке + правило прибавки</td><td class="ex">чтобы было от чего прибавлять</td></tr>
-   <tr><td class="ex">Боковые отведения на плечи</td><td class="ex">Остались, но суперсетом — в обоих днях</td><td class="ex">работали хорошо, но съедали время</td></tr>
-   <tr><td class="ex">Мостик как единственное тяжёлое на ягодицы</td><td class="ex">Хип-траст 4 подхода + махи + болгарские с наклоном</td><td class="ex">объём большой ягодичной</td></tr>
-   <tr><td class="ex">Икр нет</td><td class="ex">Подъёмы стоя оба дня, один — в растянутой половине</td><td class="ex">запрос на объём икр</td></tr>
-   <tr><td class="ex">Кора почти нет</td><td class="ex">Паллоф, боковая планка, обратные скручивания, дэд-баг</td><td class="ex">запрос + поясница</td></tr>
-   <tr><td class="ex">Гиперэкстензия до румынки</td><td class="ex">Убрана, вместо неё работа на верх спины</td><td class="ex">поясница и без того жёсткая</td></tr>
-   <tr><td class="ex">Отжимания последними, всё в одну строку</td><td class="ex">Первыми, отдельно полные и с колен</td><td class="ex">прогрессия по полным</td></tr>
-   <tr><td class="ex">Нет разгрузки</td><td class="ex">Недели 4 и 8</td><td class="ex">убрать накопленную усталость</td></tr>
-  </table></div></div>
-
- <div class="card"><h3>Пересчёт весов: было занижено</h3>
-  <div class="why"><b>Что я сделал неправильно.</b> Первую версию весов я посчитал от процентов расчётного максимума: взял 1ПМ приседа за 95 кг и поставил 65% на первую неделю — вышло 62,5×8. Но проценты — это усреднение по людям, а у тебя есть свои цифры на каждое число повторов. По дневнику ты делала <b>80×8</b> в приседе и <b>90×8</b> в румынке. На этом фоне 62,5×8 и 62,5×10 — это разминка, а не рабочий подход.</div>
-  <div class="why"><b>Как считается теперь.</b> От лучшего подхода на то же число повторов, минус запас на RIR: первая неделя — примерно 90% от твоего лучшего, дальше вверх.</div>
-  <div class="scroll"><table style="margin-top:6px">
-   <tr><th class="ex">Упражнение</th><th>Твой лучший</th><th>Было нед. 1</th><th>Стало нед. 1</th><th>Стало нед. 7</th></tr>
-   <tr><td class="ex">Присед</td><td>80×8</td><td>62,5×8</td><td><b>70×8</b></td><td>85×4</td></tr>
-   <tr><td class="ex">Румынская тяга</td><td>90×8 · 80×12</td><td>62,5×10</td><td><b>75×10</b></td><td>100×5</td></tr>
-   <tr><td class="ex">Хип-траст</td><td>160×12 · 190×8</td><td>150×10</td><td><b>160×10</b></td><td>210×5</td></tr>
-   <tr><td class="ex">Тяга к лицу</td><td>11×12</td><td>15×15</td><td><b>11×15</b></td><td>17,5×15</td></tr>
-  </table></div>
-  <p style="font-size:13px;color:#6E727A;margin-top:10px">Тяга к лицу, наоборот, была завышена — ты делала её с 11 кг, а стояло 15. Поправил вниз.</p>
- </div>
-
- <div class="card"><h3>От каких цифр считались веса</h3>
-  <div class="scroll"><table>
-   <tr><th class="ex">Упражнение</th><th>Лучший подход</th><th>Когда</th><th>Рабочий максимум</th></tr>
-   <tr><td class="ex">Присед</td><td>85×2 · 82,5×6</td><td>11.08 · 28.05</td><td>95 кг</td></tr>
-   <tr><td class="ex">Румынская тяга</td><td>100×4</td><td>07.08</td><td>112,5 кг</td></tr>
-   <tr><td class="ex">Хип-траст</td><td>190×7</td><td>30.04</td><td>225 кг</td></tr>
-   <tr><td class="ex">Тяга верхнего блока</td><td>60×6</td><td>12.07</td><td>72 кг</td></tr>
-   <tr><td class="ex">Болгарские выпады</td><td>45×8</td><td>11.08</td><td>55 кг</td></tr>
-   <tr><td class="ex">Отжимания полные</td><td>8 повторов</td><td>10.05</td><td>8 повт.</td></tr>
-   <tr><td class="ex">Отжимания с колен</td><td>15 повторов</td><td>22.06</td><td>15 повт.</td></tr>
-   <tr><td class="ex">Икры</td><td>не тренировались</td><td>—</td><td>веса стартовые</td></tr>
-  </table></div>
-  <p style="font-size:13px;color:#6E727A;margin-top:10px">Если вес на первой неделе окажется не тем — правь прямо в полях на вкладке «Тренировка», дальше считай от своих цифр.</p></div>
-
- <div class="card"><h3>Что дальше</h3>
-  <p style="font-size:14px">На 8-й неделе тест: присед на 3 повтора, румынка на 5, отжимания на максимум. От новых цифр строится следующий блок. Если за блок вышло меньше 12 тренировок из 16 — следующий повторяем с теми же весами: дело будет не в программе.</p></div>
-
- <div class="card"><h3>Источники</h3>
-  <p style="font-size:13px;color:#6E727A">Всё, на чём построены решения выше. Ссылки открываются в браузере.</p>
-  ${SRC.map(x=>`<div class="why" style="padding:12px"><a href="${x[2]}" target="_blank" rel="noreferrer" style="color:var(--ink);font-weight:800;text-decoration:none">${x[0]} ↗</a>
-   <div style="font-size:12.5px;color:#6E727A;margin-top:4px;font-weight:600">${x[1]}</div></div>`).join('')}
- </div>`;
+ return `<div class="card"><h3>Почему три тренировки</h3><p>При твоём плавающем графике А, Б и В идут по очереди. Третье занятие не нужно втискивать в ту же неделю: при двух посещениях зала полный круг займёт примерно полторы недели.</p></div>
+ <div class="card"><h3>Что изменилось</h3><p>Присед со штангой заменён на гакк с выбором маятника или жима ногами. Ягодичный мост записан именно в твоём варианте: верх спины на лавке, стопы на степе, гриф в Смите.</p><p>Сгибания ног есть во всех трёх тренировках, румынская тяга — в одной. Икры тоже есть в каждом занятии. Тяги и жимы сохраняют работу на верх тела.</p></div>
+ <div class="card"><h3>Повторы и вес</h3><p>Вместо привязки к восьми неделям здесь диапазоны повторов. Сначала добавляй повторы, затем минимальный шаг веса, сохраняя запас 2–3 повтора. Веса в разных тренажёрах и разных вариантах моста напрямую не сравниваются.</p></div>
+ <div class="card"><h3>Как читать запись</h3><p>Один подход может содержать несколько частей: 40 кг × 8 → 35 кг × 4 — сброс веса; 20 кг × 6 → 25 кг × 4 — увеличение. Стрелка сохраняет порядок, каждый вес имеет своё число повторов.</p><p>История показывает исходные кг или lb. Для графиков и приблизительного тоннажа lb переводятся в кг. Разные части составного подхода учитываются в тоннаже, но сам подход остаётся одним.</p></div>`;
 }
-
 /* ============ 7. РЕНДЕР И СОБЫТИЯ ============ */
-function render(){
+function render(scroll=true){
  renderNav();
  const v=document.getElementById('view');
  v.innerHTML={today:renderToday,program:renderProgram,body:renderBody,spine:renderSpine,progress:renderProgress,history:renderHistory,why:renderWhy}[S.tab]();
- fabUpdate();window.scrollTo({top:0});
+ fabUpdate();if(scroll)window.scrollTo({top:0});
 }
 document.getElementById('nav').addEventListener('click',e=>{
  const b=e.target.closest('button[data-tab]');if(!b)return;S.tab=b.dataset.tab;save();render();});
 document.getElementById('view').addEventListener('click',e=>{
- const c=e.target.closest('.chk');
- if(c){const key=`w${S.week}d${S.day}`,i=+c.dataset.i,j=+c.dataset.j;
-  S.log[key]=S.log[key]||{sets:{}};S.log[key].sets[i]=S.log[key].sets[i]||[];
-  const r=S.log[key].sets[i][j]=S.log[key].sets[i][j]||{};
-  r.done=!r.done;
-  if(r.done&&r.w===undefined){const p=sch(DAYS[S.day-1].ex[i],S.week-1);r.w=p.l;r.r=parseInt(p.r)||null;
-   const box=c.parentElement;box.querySelector('[data-f=w]').value=p.l??'';box.querySelector('[data-f=r]').value=parseInt(p.r)||'';}
-  c.classList.toggle('on',r.done);c.textContent=r.done?'✓':'';
-  const card=c.closest('.card'),p=sch(DAYS[S.day-1].ex[i],S.week-1),rows=S.log[key].sets[i];
-  card.classList.toggle('exdone',rows.length===p.s&&rows.every(x=>x&&x.done));
-  save();fabUpdate();
-  if(r.done){const ex=DAYS[S.day-1].ex[i];startRest(ex.ss?60:(p.l&&p.l>=25)?120:90);}
-  return;}
+ const action=e.target.closest('.chk,[data-addset],[data-delset],[data-addseg],[data-delseg]');
+ if(action){
+  const i=+action.dataset.i,j=+action.dataset.j,ex=DAYS[S.day-1].ex[i],log=currentLog(),rows=rowsFor(log,i,ex);
+  log.names=log.names||{};log.names[i]=log.names[i]||exName(ex);
+  if(action.matches('.chk')){const row=rows[j];row.done=!row.done;save();action.classList.toggle('on',row.done);action.textContent=row.done?'✓':'';action.setAttribute('aria-pressed',String(row.done));action.closest('.card').classList.toggle('exdone',rows.every(r=>r.done));fabUpdate();if(row.done)startRest(ex.rest||90);return;}
+  if(action.hasAttribute('data-addset'))rows.push(newSet());
+  if(action.hasAttribute('data-delset')&&j>=ex.s){if((rows[j].done||rows[j].segments.some(s=>s.w!==undefined||s.r!==undefined))&&!confirm('Удалить этот подход вместе с записью?'))return;rows.splice(j,1);}
+  if(action.hasAttribute('data-addseg')){rows[j].segments.push({unit:rows[j].segments.at(-1).unit||S.unit});rows[j].done=false;}
+  if(action.hasAttribute('data-delseg')&&rows[j].segments.length>1){const seg=rows[j].segments[+action.dataset.k];if((seg.w!==undefined||seg.r!==undefined)&&!confirm('Удалить эту часть подхода?'))return;rows[j].segments.splice(+action.dataset.k,1);}
+  save();render(false);return;
+ }
  const go=e.target.closest('[data-go]');
  if(go){S.day=+go.dataset.go;save();render();return;}
- const sh=e.target.closest('[data-sh]');
- if(sh){S.short=sh.dataset.sh==='1';save();render();return;}
- const mm=e.target.closest('[data-md]');
- if(mm){S.mode=mm.dataset.md;save();render();return;}
  const md=e.target.closest('[data-mode]');
  if(md){curMode=md.dataset.mode;render();return;}
  const gl=e.target.closest('[data-goal]');
@@ -1329,20 +995,21 @@ document.getElementById('view').addEventListener('click',e=>{
  if(e.target.id==='dayok'){const k=new Date().toISOString().slice(0,10);
   if(S.daily[k])delete S.daily[k];else S.daily[k]=1;save();render();return;}
  if(e.target.id==='exp'){
-  const blob=new Blob([JSON.stringify({log:S.log,custom:S.custom},null,1)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({version:PROGRAM_VERSION,...S},null,1)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='тренировки-'+new Date().toISOString().slice(0,10)+'.json';a.click();return;}
- if(e.target.id==='clr'){if(confirm('Удалить все записи, сделанные в приложении? Дневник до 11.08 останется.')){S.custom=[];S.log={};save();render();}return;}
+ if(e.target.id==='clr'){if(confirm('Удалить все записи, сделанные в приложении? Исходный дневник останется.')){S.custom=[];S.log={};save();render();}return;}
 });
 document.getElementById('view').addEventListener('input',e=>{
  const t=e.target;
- if(t.id==='selp'){S.pace=+t.value;save();render();return;}
  if(t.id==='selm'){curMetric=t.value;render();return;}
- if(t.id==='selw'){S.week=+t.value;save();render();return;}
- if(t.id==='seld'){S.day=+t.value;save();render();return;}
- if(t.dataset.f){const key=`w${S.week}d${S.day}`,i=+t.dataset.i,j=+t.dataset.j;
-  S.log[key]=S.log[key]||{sets:{}};S.log[key].sets[i]=S.log[key].sets[i]||[];
-  const r=S.log[key].sets[i][j]=S.log[key].sets[i][j]||{};
-  r[t.dataset.f]=t.value===''?undefined:+t.value;save();}
+ if(t.id==='seld'){S.day=+t.value;clearInterval(restT);restT=null;save();render();return;}
+ if(t.id==='selunit'){S.unit=t.value;const log=currentLog();DAYS[S.day-1].ex.forEach((ex,i)=>rowsFor(log,i,ex).forEach(row=>row.segments.forEach(seg=>{if(seg.w==null||seg.w==='')seg.unit=S.unit;})));save();render(false);return;}
+ if(t.dataset.choice!==undefined){
+  const i=+t.dataset.choice,ex=DAYS[S.day-1].ex[i],log=currentLog(),rows=rowsFor(log,i,ex);
+  if(rows.some(row=>row.done||row.segments.some(seg=>seg.w!=null||seg.r!=null))){alert('В этом упражнении уже есть запись. Вариант можно выбрать до заполнения подходов.');t.value=log.names?.[i]||exName(ex);return;}
+  S.choices[ex.id]=t.value;log.names=log.names||{};log.names[i]=t.value;save();render(false);return;
+ }
+ if(t.dataset.f){const i=+t.dataset.i,j=+t.dataset.j,k=+t.dataset.k,ex=DAYS[S.day-1].ex[i],log=currentLog(),seg=rowsFor(log,i,ex)[j].segments[k];log.names=log.names||{};log.names[i]=log.names[i]||exName(ex);seg[t.dataset.f]=t.value===''?undefined:t.value;save();}
 });
 let restT=null,restLeft=0;
 function startRest(sec){
