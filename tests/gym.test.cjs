@@ -168,3 +168,20 @@ test('storage failure does not advance the workout or report a saved session', (
   assert.equal(a.run('S.custom.length'), 0);
   assert.match(a.alerts.at(-1), /Не удалось сохранить/);
 });
+
+test('body measurements retain composition fields on reload and same-date updates', () => {
+  let a = app();
+  a.run("BODY_FIELDS.forEach(([key])=>document.getElementById('b_'+key).value='');document.getElementById('bd').value='2025-01-10';document.getElementById('bsource').value='InBody'");
+  for (const [key,value] of Object.entries({w:'80',m:'30,2',f:'20',fm:'16',ffm:'64',water:'40',score:'85'})) a.element('b_'+key).value=value;
+  a.run('saveBodyMeasurement()');
+  a=app(Object.fromEntries(a.storage));
+  assert.equal(a.run("S.body.find(x=>x.d==='2025-01-10').m"),30.2);
+  assert.match(a.run('renderBody()'),/История состава тела/);
+  assert.match(a.run('renderBody()'),/Мышечная масса/);
+  a.run("BODY_FIELDS.forEach(([key])=>document.getElementById('b_'+key).value='');document.getElementById('bd').value='2025-01-10';document.getElementById('bsource').value='InBody';document.getElementById('b_t').value='75';saveBodyMeasurement()");
+  assert.equal(a.run("S.body.filter(x=>x.d==='2025-01-10').length"),1);
+  assert.equal(a.run("S.body.find(x=>x.d==='2025-01-10').m"),30.2);
+  assert.equal(a.run("S.body.find(x=>x.d==='2025-01-10').t"),75);
+  a.element('b_f').value='120';a.run('saveBodyMeasurement()');
+  assert.equal(a.run("S.body.find(x=>x.d==='2025-01-10').f"),20);
+});

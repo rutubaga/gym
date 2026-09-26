@@ -779,6 +779,34 @@ function renderLegacyDrafts(){
 }
 
 /* --- ТЕЛО: замеры и рекомпозиция --- */
+const BODY_FIELDS=[
+ ['w','Вес','кг'],['m','Мышечная масса','кг'],['f','Жир','%'],['t','Талия','см'],
+ ['fm','Жировая масса','кг'],['ffm','Безжировая масса','кг'],['water','Вода','л'],
+ ['protein','Белок','кг'],['minerals','Минералы','кг'],['visceral','Висцеральный жир','уровень'],
+ ['bmi','ИМТ',''],['bmr','Основной обмен','ккал'],['score','Оценка InBody','/100'],
+ ['reportCalories','Норма калорий из отчёта','ккал'],['reportIdealWeight','Целевой вес из отчёта','кг']
+];
+const bodyNumber=v=>v==null?'—':Number(v).toLocaleString('ru-RU',{maximumFractionDigits:2});
+function saveBodyMeasurement(){
+ const d=document.getElementById('bd').value,source=document.getElementById('bsource').value,entry={d,source};
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){alert('Укажи дату замера.');return;}
+ for(const [key,label] of BODY_FIELDS){
+  const raw=document.getElementById('b_'+key).value.trim();if(!raw)continue;
+  const value=decimal(raw);if(!Number.isFinite(value)||value<0||(['f','score'].includes(key)&&value>100)){alert('Проверь поле «'+label+'».');return;}
+  entry[key]=value;
+ }
+ if(Object.keys(entry).length===2){alert('Заполни хотя бы один показатель.');return;}
+ const previous=S.body,existing=previous.find(x=>x.d===d);
+ S.body=[...previous.filter(x=>x.d!==d),{...existing,...entry}];
+ if(!save()){S.body=previous;return;}render(false);
+}
+function bodyHistory(B){
+ if(!B.length)return '';
+ return `<div class="card"><h3>История состава тела</h3><p><small>Замеры сохраняются в этом браузере. Копию можно скачать кнопкой «Выгрузить JSON» во вкладке «История».</small></p><div class="scroll"><table>
+ <tr><th class="ex">Дата</th><th>Вес, кг</th><th>Мышцы, кг</th><th>Жир, %</th><th>Жир, кг</th></tr>
+ ${B.slice().reverse().map(x=>`<tr><td class="ex">${fmtD(x.d)}.${x.d.slice(2,4)}</td><td>${bodyNumber(x.w)}</td><td>${bodyNumber(x.m)}</td><td>${bodyNumber(x.f)}</td><td>${bodyNumber(x.fm)}</td></tr>`).join('')}</table></div>
+ ${B.slice().reverse().map(x=>`<details class="hist"><summary>${fmtD(x.d)}.${x.d.slice(2,4)} · ${safe(x.source||'Замер')} — все показатели</summary><div class="grid g2" style="margin-top:12px">${BODY_FIELDS.filter(([key])=>x[key]!=null).map(([key,label,unit])=>`<div><small>${label}</small><div><b>${bodyNumber(x[key])} ${unit}</b></div></div>`).join('')}</div><button class="btn" data-bdel="${x.d}" style="margin-top:12px">Удалить замер</button></details>`).join('')}</div>`;
+}
 const GOALS={
  recomp:{n:'Рекомпозиция',kcal:1800,p:135,f:60,c:180,rate:0.35,def:'−12%',weeks:'12–16 недель',
   res:'минус 2–3 кг жира, плюс 0,5–1 кг мышц, талия −3–5 см при почти том же весе'},
@@ -789,7 +817,7 @@ function renderBody(){
  const B=[...S.body].sort((a,b)=>a.d<b.d?-1:1);
  const ws=B.filter(x=>x.w);
  const avg=n=>{const t=ws.slice(-n);return t.length?+(t.reduce((a,b)=>a+b.w,0)/t.length).toFixed(1):null;};
- const cur=avg(3), first=ws[0], last=ws[ws.length-1];
+ const first=ws[0], last=ws[ws.length-1],cur=last?.w,latest=B[B.length-1];
  const dw=(first&&last&&ws.length>1)?+(last.w-first.w).toFixed(1):null;
  const wks=(first&&last)?Math.max(1,(new Date(last.d)-new Date(first.d))/6048e5):0;
  const rate=dw!==null&&wks>=1?+(dw/wks).toFixed(2):null;
@@ -800,24 +828,22 @@ function renderBody(){
  return `
  <div class="card green"><span class="pill dark">${GOAL.n}</span>
   <div class="row" style="align-items:flex-end;margin:18px 0 14px"><div class="num">${cur??'—'}<i> кг</i></div>
-   <div style="margin-left:auto;text-align:right;font-size:13px;font-weight:700;opacity:.7">среднее по<br>последним замерам</div></div>
+   <div style="margin-left:auto;text-align:right;font-size:13px;font-weight:700;opacity:.7">последний вес<br>${last?fmtD(last.d)+'.'+last.d.slice(2,4):'—'}</div></div>
   <div class="row" style="gap:14px;font-size:13px;font-weight:700;opacity:.8">
    <div>${dw!==null?(dw>0?'+':'')+dw+' кг за период':'нужен второй замер'}</div>
-   ${rate!==null?`<div style="margin-left:auto">${rate>0?'+':''}${rate} кг/нед · цель −${GOAL.rate}</div>`:''}</div></div>
+</div></div>
 
- <div class="card"><h3>Записать замер</h3>
-  <div class="grid g4" style="margin-top:12px">
-   <div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">дата</div>
-    <input id="bd" type="date" value="${new Date().toISOString().slice(0,10)}" style="width:100%;text-align:center"></div>
-   <div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">вес, кг</div>
-    <input id="bw" type="number" step="0.1" inputmode="decimal" placeholder="66.9"></div>
-   <div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">талия, см</div>
-    <input id="bt" type="number" step="0.5" inputmode="decimal" placeholder="—"></div>
-   <div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px">жир, %</div>
-    <input id="bf" type="number" step="0.1" inputmode="decimal" placeholder="—"></div></div>
-  <button class="btn primary" id="baddb" style="margin-top:12px;width:100%">Добавить</button>
-  <p style="font-size:12.5px;color:#6E727A;margin-top:10px;font-weight:600">Вес — утром после туалета, до еды. Талия — на уровне пупка, на выдохе, не втягивая. Жир — только с InBody, раз в 6–8 недель.</p></div>
-
+ ${latest?`<div class="grid g3"><div class="stat"><div class="v">${bodyNumber(latest.m)}</div><div class="k">мышцы, кг</div></div><div class="stat"><div class="v">${bodyNumber(latest.f)}%</div><div class="k">жир</div></div><div class="stat"><div class="v">${bodyNumber(latest.fm)}</div><div class="k">жировая масса, кг</div></div></div>`:''}
+ ${bodyHistory(B)}
+ <div class="card"><h3>Записать замер</h3><div class="grid g2" style="margin-top:12px">
+ <label>Дата<input id="bd" aria-label="Дата замера" type="date" value="${new Date().toLocaleDateString('sv-SE')}" style="width:100%"></label>
+ <label>Источник<select id="bsource" aria-label="Источник замера" style="width:100%"><option>InBody</option><option>Весы / замер дома</option></select></label></div>
+ <div class="grid g2" style="margin-top:12px">${BODY_FIELDS.slice(0,4).map(([key,label,unit])=>`<label>${label}, ${unit}<input id="b_${key}" aria-label="${label}, ${unit}" type="text" inputmode="decimal" placeholder="—" style="width:100%"></label>`).join('')}</div>
+ <details style="margin-top:12px"><summary>Дополнительные показатели InBody</summary><div class="grid g2" style="margin-top:12px">${BODY_FIELDS.slice(4).map(([key,label,unit])=>`<label>${label}${unit?', '+unit:''}<input id="b_${key}" aria-label="${label}${unit?', '+unit:''}" type="text" inputmode="decimal" placeholder="—" style="width:100%"></label>`).join('')}</div></details>
+ <button class="btn primary" id="baddb" style="margin-top:12px;width:100%">Сохранить замер</button>
+ <p><small>Пустые поля можно пропустить. Запись на ту же дату дополнит существующую, сохранив остальные показатели. Значения из отчёта записываются без пересчёта.</small></p></div>
+ ${fat.length?`<div class="card"><h3>Доля жира</h3>${lineChart(fat.map(x=>({d:x.d,v:x.f,l:bodyNumber(x.f)+'%'})),'%')}</div>`:''}
+ ${B.some(x=>x.m!=null)?`<div class="card"><h3>Мышечная масса</h3>${lineChart(B.filter(x=>x.m!=null).map(x=>({d:x.d,v:x.m,l:bodyNumber(x.m)+' кг'})),'кг')}<p><small>Для динамики нужны хотя бы два замера мышечной массы. Безжировая масса и мышечная масса — отдельные показатели.</small></p></div>`:''}
  ${pts.length>1?`<div class="card"><h3>Вес</h3>${lineChart(pts,'кг')}
   <p style="font-size:12.5px;color:#6E727A;margin-top:10px">Смотри на направление за 3–4 недели, а не на соседние дни: колебания воды дают ±1,5 кг и легко прячут реальный результат.</p></div>`:''}
  ${tpts.length>1?`<div class="card"><h3>Талия</h3>${lineChart(tpts,'см')}
@@ -853,11 +879,7 @@ function renderBody(){
   <div class="why"><b>Когда останавливаться.</b> Каждые 6–8 недель дефицита — неделя на поддержке (2000–2100). Сигналы, что пора: падают веса в зале, стабильно плохой сон, постоянный холод, пропал цикл. Последнее — не «издержки сушки», а повод выйти из дефицита и сходить к врачу.</div>
  </div>
 
- ${B.length?`<div class="card"><h3>Все замеры</h3><div class="scroll"><table style="margin-top:6px">
-  <tr><th class="ex">Дата</th><th>Вес</th><th>Талия</th><th>Жир %</th><th></th></tr>
-  ${B.slice().reverse().map(x=>`<tr><td class="ex">${fmtD(x.d)}</td><td>${x.w??'—'}</td><td>${x.t??'—'}</td><td>${x.f??'—'}</td>
-   <td><button class="btn" data-bdel="${x.d}" style="font-size:11px;padding:5px 10px">убрать</button></td></tr>`).join('')}
-  </table></div></div>`:''}`;
+ `;
 }
 
 /* --- СПИНА И КОР --- */
@@ -985,13 +1007,8 @@ document.getElementById('view').addEventListener('click',e=>{
  const gl=e.target.closest('[data-goal]');
  if(gl){S.goal=gl.dataset.goal;save();render();return;}
  const bdel=e.target.closest('[data-bdel]');
- if(bdel){S.body=S.body.filter(x=>x.d!==bdel.dataset.bdel);save();render();return;}
- if(e.target.id==='baddb'){
-  const g=id=>{const v=document.getElementById(id).value;return v===''?undefined:+v;};
-  const d=document.getElementById('bd').value;
-  if(!d||(g('bw')===undefined&&g('bt')===undefined&&g('bf')===undefined)){alert('Заполни хотя бы вес, талию или процент жира.');return;}
-  S.body=S.body.filter(x=>x.d!==d);
-  S.body.push({d,w:g('bw'),t:g('bt'),f:g('bf')});save();render();return;}
+ if(bdel){if(!confirm('Удалить замер за '+fmtD(bdel.dataset.bdel)+'?'))return;S.body=S.body.filter(x=>x.d!==bdel.dataset.bdel);save();render();return;}
+ if(e.target.id==='baddb'){saveBodyMeasurement();return;}
  if(e.target.id==='dayok'){const k=new Date().toISOString().slice(0,10);
   if(S.daily[k])delete S.daily[k];else S.daily[k]=1;save();render();return;}
  if(e.target.id==='exp'){
