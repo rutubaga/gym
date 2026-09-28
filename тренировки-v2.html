@@ -779,22 +779,37 @@ function renderLegacyDrafts(){
 }
 
 /* --- ТЕЛО: замеры и рекомпозиция --- */
+const BODY_SEGMENTS=[['leftArm','Левая рука'],['rightArm','Правая рука'],['trunk','Торс'],['leftLeg','Левая нога'],['rightLeg','Правая нога']];
+const BODY_SEGMENT_FIELDS=BODY_SEGMENTS.flatMap(([key,label])=>[
+ [`${key}Lean`,`${label}: мышечный показатель`,'кг'],[`${key}LeanPct`,`${label}: мышечный показатель относительно нормы`,'%'],
+ [`${key}Fat`,`${label}: жир`,'кг'],[`${key}FatPct`,`${label}: жир относительно нормы`,'%']
+]);
 const BODY_FIELDS=[
  ['w','Вес','кг'],['m','Мышечная масса','кг'],['f','Жир','%'],['t','Талия','см'],
  ['fm','Жировая масса','кг'],['ffm','Безжировая масса','кг'],['water','Вода','л'],
- ['protein','Белок','кг'],['minerals','Минералы','кг'],['visceral','Висцеральный жир','уровень'],
+ ['protein','Белок','кг'],['minerals','Минералы («кости» в отчёте)','кг'],['visceral','Висцеральный жир','уровень'],
  ['bmi','ИМТ',''],['bmr','Основной обмен','ккал'],['score','Оценка InBody','/100'],
- ['reportCalories','Норма калорий из отчёта','ккал'],['reportIdealWeight','Целевой вес из отчёта','кг']
+ ['reportCalories','Норма калорий из отчёта','ккал'],['reportIdealWeight','Целевой вес из отчёта','кг'],
+ ['height','Рост на дату замера','см'],['age','Возраст на дату замера','лет'],
+ ['correctionWeight','Коррекция веса из отчёта','кг'],['correctionFat','Коррекция жира из отчёта','кг'],['correctionMuscle','Коррекция мышц из отчёта','кг'],
+ ...BODY_SEGMENT_FIELDS
 ];
 const bodyNumber=v=>v==null?'—':Number(v).toLocaleString('ru-RU',{maximumFractionDigits:2});
+const bodyInput=([key,label,unit])=>`<label>${label}${unit?', '+unit:''}<input id="b_${key}" aria-label="${label}${unit?', '+unit:''}" type="text" inputmode="${key.startsWith('correction')?'text':'decimal'}" placeholder="—" style="width:100%"></label>`;
+function bodySegments(x){
+ if(!BODY_SEGMENT_FIELDS.some(([key])=>x[key]!=null))return '';
+ return `<h4 style="margin-top:18px">Сегментный анализ</h4><p><small>Значения переписаны из отчёта. Проценты здесь — относительно нормы прибора, а не доля жира в сегменте. Сегментные мышечные показатели не складываются в общую скелетную мышечную массу.</small></p><div class="scroll"><table><tr><th class="ex">Сегмент</th><th>Мышечный показатель, кг</th><th>% нормы</th><th>Жир, кг</th><th>% нормы</th></tr>${BODY_SEGMENTS.map(([key,label])=>`<tr><td class="ex">${label}</td>${['Lean','LeanPct','Fat','FatPct'].map(suffix=>`<td>${bodyNumber(x[key+suffix])}</td>`).join('')}</tr>`).join('')}</table></div>`;
+}
 function saveBodyMeasurement(){
  const d=document.getElementById('bd').value,source=document.getElementById('bsource').value,entry={d,source};
  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){alert('Укажи дату замера.');return;}
  for(const [key,label] of BODY_FIELDS){
   const raw=document.getElementById('b_'+key).value.trim();if(!raw)continue;
-  const value=decimal(raw);if(!Number.isFinite(value)||value<0||(['f','score'].includes(key)&&value>100)){alert('Проверь поле «'+label+'».');return;}
+  const value=decimal(raw);if(!Number.isFinite(value)||(!key.startsWith('correction')&&value<0)||(key==='f'&&value>100)){alert('Проверь поле «'+label+'».');return;}
   entry[key]=value;
  }
+ const notes=document.getElementById('b_reportNotes').value?.trim();
+ if(notes){if(notes.length>6000){alert('Примечание должно быть не длиннее 6000 символов.');return;}entry.reportNotes=notes;}
  if(Object.keys(entry).length===2){alert('Заполни хотя бы один показатель.');return;}
  const previous=S.body,existing=previous.find(x=>x.d===d);
  S.body=[...previous.filter(x=>x.d!==d),{...existing,...entry}];
@@ -805,7 +820,7 @@ function bodyHistory(B){
  return `<div class="card"><h3>История состава тела</h3><p><small>Замеры сохраняются в этом браузере. Копию можно скачать кнопкой «Выгрузить JSON» во вкладке «История».</small></p><div class="scroll"><table>
  <tr><th class="ex">Дата</th><th>Вес, кг</th><th>Мышцы, кг</th><th>Жир, %</th><th>Жир, кг</th></tr>
  ${B.slice().reverse().map(x=>`<tr><td class="ex">${fmtD(x.d)}.${x.d.slice(2,4)}</td><td>${bodyNumber(x.w)}</td><td>${bodyNumber(x.m)}</td><td>${bodyNumber(x.f)}</td><td>${bodyNumber(x.fm)}</td></tr>`).join('')}</table></div>
- ${B.slice().reverse().map(x=>`<details class="hist"><summary>${fmtD(x.d)}.${x.d.slice(2,4)} · ${safe(x.source||'Замер')} — все показатели</summary><div class="grid g2" style="margin-top:12px">${BODY_FIELDS.filter(([key])=>x[key]!=null).map(([key,label,unit])=>`<div><small>${label}</small><div><b>${bodyNumber(x[key])} ${unit}</b></div></div>`).join('')}</div><button class="btn" data-bdel="${x.d}" style="margin-top:12px">Удалить замер</button></details>`).join('')}</div>`;
+ ${B.slice().reverse().map(x=>`<details class="hist"><summary>${fmtD(x.d)}.${x.d.slice(2,4)} · ${safe(x.source||'Замер')} — все показатели</summary><div class="grid g2" style="margin-top:12px">${BODY_FIELDS.filter(([key])=>x[key]!=null&&!BODY_SEGMENT_FIELDS.some(([s])=>s===key)).map(([key,label,unit])=>`<div><small>${label}</small><div><b>${bodyNumber(x[key])} ${unit}</b></div></div>`).join('')}</div>${bodySegments(x)}${x.reportNotes?`<h4 style="margin-top:18px">Примечания и обозначения отчёта</h4><p style="white-space:pre-wrap;overflow-wrap:anywhere">${safe(x.reportNotes)}</p>`:''}<button class="btn" data-bdel="${x.d}" style="margin-top:12px">Удалить замер</button></details>`).join('')}</div>`;
 }
 const GOALS={
  recomp:{n:'Рекомпозиция',kcal:1800,p:135,f:60,c:180,rate:0.35,def:'−12%',weeks:'12–16 недель',
@@ -838,8 +853,10 @@ function renderBody(){
  <div class="card"><h3>Записать замер</h3><div class="grid g2" style="margin-top:12px">
  <label>Дата<input id="bd" aria-label="Дата замера" type="date" value="${new Date().toLocaleDateString('sv-SE')}" style="width:100%"></label>
  <label>Источник<select id="bsource" aria-label="Источник замера" style="width:100%"><option>InBody</option><option>Весы / замер дома</option></select></label></div>
- <div class="grid g2" style="margin-top:12px">${BODY_FIELDS.slice(0,4).map(([key,label,unit])=>`<label>${label}, ${unit}<input id="b_${key}" aria-label="${label}, ${unit}" type="text" inputmode="decimal" placeholder="—" style="width:100%"></label>`).join('')}</div>
- <details style="margin-top:12px"><summary>Дополнительные показатели InBody</summary><div class="grid g2" style="margin-top:12px">${BODY_FIELDS.slice(4).map(([key,label,unit])=>`<label>${label}${unit?', '+unit:''}<input id="b_${key}" aria-label="${label}${unit?', '+unit:''}" type="text" inputmode="decimal" placeholder="—" style="width:100%"></label>`).join('')}</div></details>
+ <div class="grid g2" style="margin-top:12px">${BODY_FIELDS.slice(0,4).map(bodyInput).join('')}</div>
+ <details style="margin-top:12px"><summary>Дополнительные показатели InBody</summary><div class="grid g2" style="margin-top:12px">${BODY_FIELDS.slice(4).filter(([key])=>!BODY_SEGMENT_FIELDS.some(([s])=>s===key)).map(bodyInput).join('')}</div><p><small>Коррекция допускает знак минус. Целевые значения и калории прибора — сведения отчёта, не назначение.</small></p></details>
+ <details style="margin-top:12px"><summary>Сегментный анализ: руки, ноги и торс</summary><p><small>Проценты — относительно нормы прибора, могут быть больше 100.</small></p>${BODY_SEGMENTS.map(([key,label])=>`<h4>${label}</h4><div class="grid g2" style="margin-top:12px">${BODY_SEGMENT_FIELDS.filter(([s])=>s.startsWith(key)).map(bodyInput).join('')}</div>`).join('')}</details>
+ <details style="margin-top:12px"><summary>Примечания и обозначения отчёта</summary><label>Сведения из отчёта<textarea id="b_reportNotes" aria-label="Сведения из отчёта" maxlength="6000" rows="6" style="width:100%" placeholder="Источник, подписи, референсные диапазоны и другие сведения"></textarea></label></details>
  <button class="btn primary" id="baddb" style="margin-top:12px;width:100%">Сохранить замер</button>
  <p><small>Пустые поля можно пропустить. Запись на ту же дату дополнит существующую, сохранив остальные показатели. Значения из отчёта записываются без пересчёта.</small></p></div>
  ${fat.length?`<div class="card"><h3>Доля жира</h3>${lineChart(fat.map(x=>({d:x.d,v:x.f,l:bodyNumber(x.f)+'%'})),'%')}</div>`:''}

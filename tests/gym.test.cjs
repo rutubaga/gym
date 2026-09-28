@@ -185,3 +185,35 @@ test('body measurements retain composition fields on reload and same-date update
   a.element('b_f').value='120';a.run('saveBodyMeasurement()');
   assert.equal(a.run("S.body.find(x=>x.d==='2025-01-10').f"),20);
 });
+
+test('segment measurements, signed corrections and report notes survive partial updates and reload', () => {
+  let a=app();
+  a.run("BODY_FIELDS.forEach(([key])=>document.getElementById('b_'+key).value='');document.getElementById('bd').value='2025-02-10';document.getElementById('bsource').value='InBody'");
+  for(const [key,value] of Object.entries({w:'80',leftArmLean:'3,12',leftArmLeanPct:'115,2',trunkFat:'9,3',trunkFatPct:'155,35',correctionWeight:'-2,5',correctionFat:'-2,5',correctionMuscle:'0',height:'175',age:'35',score:'101'})) a.element('b_'+key).value=value;
+  a.element('b_reportNotes').value='Источник: пример\n<img src=x onerror=alert(1)>';
+  a.run('saveBodyMeasurement()');
+  assert.equal(a.alerts.length,0);
+  a=app(Object.fromEntries(a.storage));
+  assert.equal(a.run("S.body.find(x=>x.d==='2025-02-10').trunkFatPct"),155.35);
+  assert.equal(a.run("S.body.find(x=>x.d==='2025-02-10').correctionWeight"),-2.5);
+  assert.equal(a.run("S.body.find(x=>x.d==='2025-02-10').correctionMuscle"),0);
+  let view=a.run('renderBody()');
+  assert.match(view,/Сегментный анализ/);
+  assert.match(view,/155,35/);
+  assert.match(view,/&lt;img/);
+  assert.doesNotMatch(view,/<img src=x/);
+  a.run("BODY_FIELDS.forEach(([key])=>document.getElementById('b_'+key).value='');document.getElementById('bd').value='2025-02-10';document.getElementById('bsource').value='InBody';document.getElementById('b_rightArmFat').value='1,2';saveBodyMeasurement()");
+  assert.equal(a.run("S.body.filter(x=>x.d==='2025-02-10').length"),1);
+  assert.equal(a.run("S.body.find(x=>x.d==='2025-02-10').leftArmLean"),3.12);
+  assert.equal(a.run("S.body.find(x=>x.d==='2025-02-10').rightArmFat"),1.2);
+  assert.match(a.run("S.body.find(x=>x.d==='2025-02-10').reportNotes"),/Источник/);
+  const exported=JSON.parse(a.run('JSON.stringify(S)'));
+  assert.equal(exported.body.find(x=>x.d==='2025-02-10').trunkFatPct,155.35);
+});
+
+test('negative segment mass is rejected without changing existing measurements', () => {
+  const a=app();
+  a.run("BODY_FIELDS.forEach(([key])=>document.getElementById('b_'+key).value='');document.getElementById('bd').value='2025-02-10';document.getElementById('bsource').value='InBody';document.getElementById('b_leftLegLean').value='-2';saveBodyMeasurement()");
+  assert.equal(a.run("S.body.some(x=>x.d==='2025-02-10')"),false);
+  assert.match(a.alerts.at(-1),/Левая нога/);
+});
